@@ -32,7 +32,7 @@ export const LandingPage: React.FC = () => {
     { name: 'Randonnée', icon: Mountain, img: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&q=80&w=600', desc: 'Sentiers, bivouacs et lacs en montagne' },
     { name: 'Bowling', icon: Trophy, img: 'https://images.unsplash.com/photo-1538388149542-5e24932d11a8?auto=format&fit=crop&q=80&w=600', desc: 'Parties conviviales et fous rires entre amis' },
     { name: 'Restaurant', icon: Utensils, img: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&q=80&w=600', desc: 'Découvertes gourmandes, cafés et bistros' },
-    { name: 'Vélo & VTT', icon: Bike, img: 'https://images.unsplash.com/photo-1517649763962-0c623266010b?auto=format&fit=crop&q=80&w=600', desc: 'Sorties route, VTT et balades le long des côtes' },
+    { name: 'Vélo & VTT', icon: Bike, img: 'https://images.unsplash.com/photo-1485965120184-e220f721d03e?auto=format&fit=crop&q=80&w=600', desc: 'Sorties route, VTT et balades le long des côtes' },
     { name: 'Jeux vidéo & Société', icon: Gamepad2, img: 'https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?auto=format&fit=crop&q=80&w=600', desc: 'Bar à jeux, soirées console et jeux de plateau' },
     { name: 'Sport & Running', icon: Zap, img: 'https://images.unsplash.com/photo-1486218119243-13883505764c?auto=format&fit=crop&q=80&w=600', desc: 'Footing, tennis, musculation et partenaires de sport' },
     { name: 'Plage & Detente', icon: Waves, img: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=600', desc: 'Beach volley, baignade et bronzette au soleil' },
@@ -214,6 +214,9 @@ export const LandingPage: React.FC = () => {
                     <img
                       src={cat.img}
                       alt={cat.name}
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?auto=format&fit=crop&q=80&w=600';
+                      }}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-[#0F172A] via-[#0F172A]/40 to-transparent" />
