@@ -10,6 +10,8 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   display_name TEXT NOT NULL,
+  phone TEXT,
+  phone_verified BOOLEAN DEFAULT FALSE,
   age INT CHECK (age IS NULL OR age >= 18),
   birth_date DATE,
   city TEXT,

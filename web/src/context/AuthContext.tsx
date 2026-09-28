@@ -9,7 +9,7 @@ interface AuthContextType {
   loading: boolean;
   authError: string | null;
   login: (email: string, password?: string) => Promise<boolean>;
-  signup: (displayName: string, email: string, birthDate: string, password?: string) => Promise<{ success: boolean; requiresEmailConfirmation?: boolean }>;
+  signup: (displayName: string, email: string, birthDate: string, password?: string, phone?: string) => Promise<{ success: boolean; requiresEmailConfirmation?: boolean }>;
   logout: () => Promise<void>;
   updateProfile: (updatedData: Partial<UserProfile>) => Promise<boolean>;
   deleteAccount: () => Promise<boolean>;
@@ -176,7 +176,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     displayName: string,
     email: string,
     birthDate: string,
-    password?: string
+    password?: string,
+    phone?: string
   ): Promise<{ success: boolean; requiresEmailConfirmation?: boolean }> => {
     setLoading(true);
     setAuthError(null);
@@ -194,7 +195,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           email,
           password,
           options: {
-            data: { display_name: displayName, birth_date: birthDate },
+            data: { display_name: displayName, birth_date: birthDate, phone: phone, phone_verified: true },
           },
         });
 

@@ -112,7 +112,7 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({ activity, compact = 
             <div className={`flex items-center gap-1 font-semibold ${isFull ? 'text-amber-400' : 'text-slate-300'}`}>
               <Users className="w-3.5 h-3.5 shrink-0" />
               <span>
-                {activity.current_participants_count || 1}/{activity.max_participants}
+                {activity.participants && activity.participants.length > 0 ? activity.participants.length : (activity.current_participants_count || 1)}/{activity.max_participants}
               </span>
             </div>
           </div>
