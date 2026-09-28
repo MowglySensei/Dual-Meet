@@ -35,6 +35,9 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({ activity, compact = 
         <img
           src={activity.image_url || 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?auto=format&fit=crop&q=80&w=800'}
           alt={`Illustration pour ${activity.title}`}
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?auto=format&fit=crop&q=80&w=800';
+          }}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           loading="lazy"
         />

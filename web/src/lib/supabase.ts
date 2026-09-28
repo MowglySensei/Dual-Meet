@@ -262,7 +262,7 @@ export const MOCK_ACTIVITIES: Activity[] = [
     budget: 'Gratuit',
     fitness_level: 'Sportif',
     status: 'open',
-    image_url: 'https://images.unsplash.com/photo-1517649763962-0c623266010b?auto=format&fit=crop&q=80&w=800',
+    image_url: 'https://images.unsplash.com/photo-1485965120184-e220f721d03e?auto=format&fit=crop&q=80&w=800',
     created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
     participants: [MOCK_USERS[2]],
   },
