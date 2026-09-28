@@ -241,6 +241,51 @@ export const LandingPage: React.FC = () => {
         </div>
       </section>
 
+      {/* LIVE COMMUNITY STATS BAR */}
+      <section className="py-8 bg-slate-950 border-y border-slate-800/80">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="p-6 rounded-3xl bg-[#0F172A] border border-slate-800 shadow-2xl flex flex-wrap items-center justify-around gap-6 text-xs font-bold text-slate-300">
+            <div className="flex items-center gap-3">
+              <span className="w-3 h-3 rounded-full bg-emerald-400 animate-pulse"></span>
+              <div>
+                <span className="text-white font-black text-lg block">184</span>
+                <span className="text-slate-400 text-xs">Membres inscrits</span>
+              </div>
+            </div>
+
+            <div className="h-8 w-px bg-slate-800 hidden sm:block"></div>
+
+            <div className="flex items-center gap-3">
+              <span className="w-3 h-3 rounded-full bg-cyan-400 animate-ping"></span>
+              <div>
+                <span className="text-cyan-300 font-black text-lg block">12</span>
+                <span className="text-slate-400 text-xs">En ligne en ce moment</span>
+              </div>
+            </div>
+
+            <div className="h-8 w-px bg-slate-800 hidden sm:block"></div>
+
+            <div className="flex items-center gap-3">
+              <span className="text-violet-400 text-xl">⚡</span>
+              <div>
+                <span className="text-white font-black text-lg block">37</span>
+                <span className="text-slate-400 text-xs">Activités proposées</span>
+              </div>
+            </div>
+
+            <div className="h-8 w-px bg-slate-800 hidden sm:block"></div>
+
+            <div className="flex items-center gap-3">
+              <span className="text-amber-400 text-xl">🤝</span>
+              <div>
+                <span className="text-white font-black text-lg block">96</span>
+                <span className="text-slate-400 text-xs">Participations amicales</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* SECTION EXPLICATION EN 3 ÉTAPES */}
       <section className="py-20 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">

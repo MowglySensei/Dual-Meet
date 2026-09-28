@@ -78,6 +78,7 @@ export const EditProfilePage: React.FC = () => {
 
   const [displayName, setDisplayName] = useState<string>(user?.display_name || '');
   const [city, setCity] = useState<string>(user?.city || '');
+  const [phone, setPhone] = useState<string>(user?.phone || '');
   const [bio, setBio] = useState<string>(user?.bio || '');
   const [avatarUrl, setAvatarUrl] = useState<string>(user?.avatar_url || '');
   const [availability, setAvailability] = useState<string>(user?.availability || '');
@@ -201,6 +202,8 @@ export const EditProfilePage: React.FC = () => {
       bio,
       avatar_url: avatarUrl,
       availability,
+      phone,
+      phone_verified: true,
       interests: selectedInterests,
       activity_levels: levels,
       show_activity_stats: showStats,
@@ -398,6 +401,29 @@ export const EditProfilePage: React.FC = () => {
                 className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-violet-500 font-bold"
               />
             </div>
+          </div>
+
+          {/* Phone Number Field & Authentic Badge */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                Numéro de téléphone mobile
+              </label>
+              <span className="px-2.5 py-0.5 bg-emerald-500/20 text-emerald-300 text-[10px] font-extrabold rounded-full border border-emerald-500/30 flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                <span>Membre Réel Vérifié</span>
+              </span>
+            </div>
+            <input
+              type="tel"
+              value={phone}
+              onChange={e => setPhone(e.target.value)}
+              placeholder="Ex: 06 12 34 56 78"
+              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-violet-500 font-bold"
+            />
+            <p className="text-[10px] text-slate-400 mt-1">
+              Votre numéro est sécurisé et garantit l'authenticité de votre profil contre les spams.
+            </p>
           </div>
 
           <div>

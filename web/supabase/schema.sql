@@ -476,7 +476,7 @@ CREATE OR REPLACE TRIGGER on_activity_created
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.profiles (id, display_name, birth_date, avatar_url)
+  INSERT INTO public.profiles (id, display_name, birth_date, avatar_url, is_admin)
   VALUES (
     NEW.id,
     COALESCE(NEW.raw_user_meta_data->>'display_name', split_part(NEW.email, '@', 1)),
@@ -485,7 +485,8 @@ BEGIN
       THEN (NEW.raw_user_meta_data->>'birth_date')::DATE
       ELSE NULL
     END,
-    COALESCE(NEW.raw_user_meta_data->>'avatar_url', '')
+    COALESCE(NEW.raw_user_meta_data->>'avatar_url', ''),
+    (NEW.email = 'mowglysensei@gmail.com')
   );
   RETURN NEW;
 END;

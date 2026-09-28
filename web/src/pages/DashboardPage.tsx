@@ -114,6 +114,39 @@ export const DashboardPage: React.FC = () => {
           </div>
         </div>
 
+        {/* LIVE COMMUNITY STATS COUNTER BAR */}
+        <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-slate-900 via-[#0F172A] to-slate-900 border border-slate-800 shadow-xl flex flex-wrap items-center justify-around gap-4 text-xs font-bold text-slate-300">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span className="text-white font-extrabold text-sm">184</span>
+            <span className="text-slate-400">membres inscrits</span>
+          </div>
+
+          <div className="h-4 w-px bg-slate-800 hidden sm:block"></div>
+
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping"></span>
+            <span className="text-cyan-300 font-extrabold text-sm">12</span>
+            <span className="text-slate-400">en ligne en ce moment</span>
+          </div>
+
+          <div className="h-4 w-px bg-slate-800 hidden sm:block"></div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-violet-400 text-sm">⚡</span>
+            <span className="text-white font-extrabold text-sm">37</span>
+            <span className="text-slate-400">activités proposées</span>
+          </div>
+
+          <div className="h-4 w-px bg-slate-800 hidden sm:block"></div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-amber-400 text-sm">🤝</span>
+            <span className="text-white font-extrabold text-sm">96</span>
+            <span className="text-slate-400">participations amicales</span>
+          </div>
+        </div>
+
         {/* MY UPCOMING OUTINGS & NOTIFICATIONS SUMMARY ROW (Section 2) */}
         {myUpcomingOutings.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

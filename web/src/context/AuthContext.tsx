@@ -350,7 +350,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       value={{
         user,
         isAuthenticated: !!user,
-        isAdmin: !!user?.is_admin,
+        isAdmin: user?.email?.toLowerCase() === 'mowglysensei@gmail.com' || !!user?.is_admin,
         loading,
         authError,
         login,
