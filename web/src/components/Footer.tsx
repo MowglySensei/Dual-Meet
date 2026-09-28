@@ -60,7 +60,7 @@ export const Footer: React.FC = () => {
 
         {/* Bottom Bar */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-medium text-slate-500">
-          <p>© 2025 Dual Meet — Fait avec passion pour des rencontres amicales authentiques.</p>
+          <p>© {new Date().getFullYear()} Dual Meet — Fait avec passion pour des rencontres amicales authentiques.</p>
           <div className="flex items-center gap-6">
             <span>Écosystème Dual</span>
             <span>•</span>

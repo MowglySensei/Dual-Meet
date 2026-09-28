@@ -419,7 +419,7 @@ export const Navbar: React.FC = () => {
           </div>
 
           <div className="pt-6 border-t border-slate-800 text-center text-xs text-slate-400">
-            <p>Dual Meet © 2025 — Plateforme sociale de rencontres amicales</p>
+            <p>Dual Meet © {new Date().getFullYear()} — Plateforme sociale de rencontres amicales</p>
           </div>
         </div>
       )}
