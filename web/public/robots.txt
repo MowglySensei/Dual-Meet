@@ -1,0 +1,21 @@
+# Robots.txt for Dual Meet (https://dualmeet.fr)
+User-agent: *
+Allow: /
+Allow: /explore
+Allow: /how-it-works
+Allow: /about
+Allow: /contact
+Allow: /terms
+Allow: /privacy
+Allow: /community-rules
+
+# Disallow private user spaces
+Disallow: /dashboard
+Disallow: /messages
+Disallow: /notifications
+Disallow: /admin
+Disallow: /profile/edit
+Disallow: /my-activities
+Disallow: /requests
+
+Sitemap: https://dualmeet.fr/sitemap.xml

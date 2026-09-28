@@ -1,0 +1,20 @@
+# Node & Web
+web/node_modules/
+web/dist/
+web/dist-ssr/
+web/.env
+web/.env.production
+web/.env.local
+web/.env.development.local
+
+# Android & IDE
+*.iml
+.gradle
+/local.properties
+/.idea/
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
