@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { localStore } from '../lib/supabase';
+import { localStore, api, isSupabaseConfigured } from '../lib/supabase';
 import {
   User,
   MapPin,
@@ -15,48 +15,167 @@ import {
   Plus,
   Star,
   AlertTriangle,
-  X
+  X,
+  Camera,
+  Search,
+  Tag,
+  Smile,
+  Heart,
+  Flame,
+  Zap,
+  Check,
+  ShieldAlert
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+
+// Comprehensive Interest Tag Library categorized by theme
+const INTEREST_CATEGORIES = [
+  {
+    category: '🏔️ Montagne & Plein Air',
+    tags: ['Randonnée', 'Bivouac', 'Escalade & Bloc', 'Via Ferrata', 'VTT', 'Trail Running', 'Camping', 'Trekking', 'Ski & Snowboard', 'Spéléologie']
+  },
+  {
+    category: '🌊 Eaux & Plage',
+    tags: ['Kayak & Paddle', 'Plage & Bronzette', 'Beach-Volley', 'Surf', 'Baignade', 'Plongée', 'Kitesurf', 'Voile', 'Canyoning']
+  },
+  {
+    category: '⚽ Sports & Fitness',
+    tags: ['Football', 'Padel & Tennis', 'Running / Course', 'Fitness & Cardio', 'Musculation', 'Crossfit', 'Basketball', 'Badminton', 'Arts Martiaux', 'Tir à l\'arc']
+  },
+  {
+    category: '🎳 Loisirs, Jeux & Fun',
+    tags: ['Bowling', 'Escape Game', 'Billard & Fléchettes', 'Karaoké & Blind Test', 'Lazer Game', 'Karting', 'Trampoline Park', 'Parc d\'attractions', 'Mini-Golf']
+  },
+  {
+    category: '🍕 Gastronomie & Sorties',
+    tags: ['Restaurants & Bistros', 'Café & Thé', 'Bars à bières', 'Soirée Tapas', 'Barbecue & Pique-Nique', 'Brunch du Dimanche', 'Atelier Cuisine', 'Dégustation de vin']
+  },
+  {
+    category: '🎮 Gaming & Pop Culture',
+    tags: ['Jeux de société', 'Jeux vidéo', 'E-Sport', 'Retrogaming', 'Casque VR', 'Jeux de cartes / Catan', 'Manga & Anime', 'Comics & Cosplay']
+  },
+  {
+    category: '🎭 Arts, Musique & Culture',
+    tags: ['Cinéma', 'Concerts & Live', 'Festivals', 'Musées & Expos', 'Théâtre & One-Man', 'Photographie', 'Peinture & Dessin', 'Club de Lecture', 'Opéra']
+  },
+  {
+    category: '✈️ Voyage & Grand Départ',
+    tags: ['Roadtrip', 'Backpacking', 'PVT Australie 🇦🇺', 'PVT Canada 🇨🇦', 'PVT Japon 🇯🇵', 'Vanlife', 'Échange Linguistique', 'Voyage Solo']
+  },
+  {
+    category: '🌱 Nature, Animaux & Solidarité',
+    tags: ['Balade avec chiens 🐶', 'Cleanwalk & Écologie', 'Jardinage & Potager', 'Bénévolat', 'Protection Animale']
+  }
+];
 
 export const EditProfilePage: React.FC = () => {
   const { user, updateProfile, deleteAccount } = useAuth();
   const { showToast } = useToast();
   const navigate = useNavigate();
 
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+
   const [displayName, setDisplayName] = useState<string>(user?.display_name || '');
   const [city, setCity] = useState<string>(user?.city || '');
   const [bio, setBio] = useState<string>(user?.bio || '');
   const [avatarUrl, setAvatarUrl] = useState<string>(user?.avatar_url || '');
   const [availability, setAvailability] = useState<string>(user?.availability || '');
-  const [interestsText, setInterestsText] = useState<string>(user?.interests?.length ? user.interests.join(', ') : '');
+  const [selectedInterests, setSelectedInterests] = useState<string[]>(() => user?.interests || []);
+  const [customInterestInput, setCustomInterestInput] = useState<string>('');
+  const [interestSearchQuery, setInterestSearchQuery] = useState<string>('');
   const [showStats, setShowStats] = useState<boolean>(user?.show_activity_stats !== false);
 
   // Gallery
   const [gallery, setGallery] = useState(() => user?.gallery || []);
-  const [newPhotoUrl, setNewPhotoUrl] = useState<string>('');
   const [photoToDelete, setPhotoToDelete] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState<boolean>(false);
+  const [uploadingGallery, setUploadingGallery] = useState<boolean>(false);
 
   // Activity Levels
   const [levels, setLevels] = useState<Record<string, string>>(() => user?.activity_levels || {});
 
-  // Handle Photo Upload (Validated for image format and size)
-  const handleAddPhoto = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newPhotoUrl.trim() || !user) return;
+  // Handle Avatar Upload from Device Gallery / File Picker
+  const handleAvatarFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    if (!newPhotoUrl.startsWith('http://') && !newPhotoUrl.startsWith('https://') && !newPhotoUrl.startsWith('data:image/')) {
-      showToast('Veuillez entrer une URL d’image valide (http/https).', 'error');
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('La taille de la photo ne doit pas dépasser 5 Mo.', 'error');
       return;
     }
 
+    setUploadingAvatar(true);
     try {
-      const added = localStore.addGalleryPhoto(user.id, newPhotoUrl.trim());
-      setGallery([...(user.gallery || []), added]);
-      setNewPhotoUrl('');
-      showToast('Photo ajoutée à votre galerie !', 'success');
-    } catch (err) {
-      showToast('Erreur lors de l’ajout de la photo.', 'error');
+      if (isSupabaseConfigured) {
+        const publicUrl = await api.uploadPhoto(file, 'avatars');
+        setAvatarUrl(publicUrl);
+      } else {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          if (event.target?.result) setAvatarUrl(event.target.result as string);
+        };
+        reader.readAsDataURL(file);
+      }
+      showToast('Photo de profil mise à jour ! N’oubliez pas d’enregistrer.', 'success');
+    } catch (err: any) {
+      showToast('Erreur lors du chargement de l’image.', 'error');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  // Handle Gallery Photo Upload from Device
+  const handleGalleryFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('La taille de la photo ne doit pas dépasser 5 Mo.', 'error');
+      return;
+    }
+
+    setUploadingGallery(true);
+    try {
+      let photoUrl = '';
+      if (isSupabaseConfigured) {
+        photoUrl = await api.uploadPhoto(file, 'user-gallery');
+      } else {
+        photoUrl = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (ev) => resolve(ev.target?.result as string);
+          reader.readAsDataURL(file);
+        });
+      }
+
+      const added = localStore.addGalleryPhoto(user.id, photoUrl);
+      setGallery(prev => [...prev, added]);
+      showToast('Nouvelle photo ajoutée à votre galerie !', 'success');
+    } catch (err: any) {
+      showToast('Erreur lors du chargement de la photo.', 'error');
+    } finally {
+      setUploadingGallery(false);
+    }
+  };
+
+  // Toggle Interest Tag
+  const toggleInterest = (tag: string) => {
+    if (selectedInterests.includes(tag)) {
+      setSelectedInterests(prev => prev.filter(i => i !== tag));
+    } else {
+      setSelectedInterests(prev => [...prev, tag]);
+    }
+  };
+
+  // Add Custom Interest Tag
+  const handleAddCustomInterest = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = customInterestInput.trim();
+    if (!trimmed) return;
+    if (!selectedInterests.includes(trimmed)) {
+      setSelectedInterests(prev => [...prev, trimmed]);
+      setCustomInterestInput('');
+      showToast(`Intérêt "${trimmed}" ajouté !`, 'success');
     }
   };
 
@@ -76,15 +195,13 @@ export const EditProfilePage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const interests = interestsText.split(',').map(s => s.trim()).filter(Boolean);
-
     await updateProfile({
       display_name: displayName,
       city,
       bio,
       avatar_url: avatarUrl,
       availability,
-      interests,
+      interests: selectedInterests,
       activity_levels: levels,
       show_activity_stats: showStats,
     });
@@ -104,168 +221,340 @@ export const EditProfilePage: React.FC = () => {
     <div className="min-h-screen bg-[#0B0F17] text-white flex flex-col font-['Plus_Jakarta_Sans',sans-serif]">
       <Navbar />
 
-      <main className="flex-1 max-w-3xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+      <main className="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
 
-        <div>
-          <h1 className="text-3xl font-black text-white">Gestion du Profil & Compte</h1>
-          <p className="text-xs text-slate-400 mt-1">Enrichissez votre profil, gérez votre galerie et ajustez vos paramètres.</p>
+        {/* Page Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-black text-white">Édition du Profil & Paramètres</h1>
+            <p className="text-xs text-slate-400 mt-1">Personnalisez votre avatar, votre galerie et vos centres d'intérêt.</p>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleSubmit}
+            className="px-6 py-3 bg-gradient-to-r from-violet-600 to-cyan-500 hover:from-violet-500 hover:to-cyan-400 text-white font-extrabold text-xs rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all hover:scale-105 shrink-0"
+          >
+            <CheckCircle2 className="w-4 h-4" />
+            <span>Enregistrer mon profil</span>
+          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="bg-[#0F172A] border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-8 shadow-2xl">
 
-          {/* Main Photo / Avatar */}
-          <div className="flex items-center gap-4 pb-6 border-b border-slate-800">
-            <img src={avatarUrl} alt="Avatar" className="w-20 h-20 rounded-2xl object-cover ring-4 ring-violet-500/50 shrink-0" />
-            <div className="flex-1 space-y-1.5">
-              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">URL Photo principale (Avatar)</label>
-              <input
-                type="text"
-                value={avatarUrl}
-                onChange={e => setAvatarUrl(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-violet-500"
-              />
-              <p className="text-[10px] text-slate-400">Conseil : vous pouvez aussi sélectionner n'importe quelle photo de votre galerie ci-dessous.</p>
+          {/* AVATAR / PROFILE PHOTO SECTION WITH NATIVE DEVICE FILE ACCESS */}
+          <div className="p-6 bg-slate-900/80 rounded-3xl border border-slate-800 space-y-4">
+            <h3 className="font-extrabold text-sm uppercase tracking-wider text-slate-300 flex items-center gap-2">
+              <Camera className="w-4 h-4 text-violet-400" />
+              <span>Photo de profil principale (Avatar)</span>
+            </h3>
+
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
+              {/* Current Avatar Display */}
+              <div className="relative group cursor-pointer" onClick={() => avatarInputRef.current?.click()}>
+                <img
+                  src={avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250'}
+                  alt="Avatar"
+                  className="w-28 h-28 rounded-3xl object-cover ring-4 ring-violet-500/50 shadow-xl group-hover:opacity-80 transition-all"
+                />
+                <div className="absolute inset-0 bg-slate-950/60 rounded-3xl opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                  <Camera className="w-6 h-6 text-white" />
+                </div>
+              </div>
+
+              {/* Upload Controls */}
+              <div className="space-y-3 flex-1 text-center sm:text-left">
+                <input
+                  type="file"
+                  ref={avatarInputRef}
+                  onChange={handleAvatarFileSelect}
+                  accept="image/*"
+                  className="hidden"
+                />
+
+                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3">
+                  <button
+                    type="button"
+                    onClick={() => avatarInputRef.current?.click()}
+                    disabled={uploadingAvatar}
+                    className="px-4 py-2.5 bg-violet-600 hover:bg-violet-500 text-white font-extrabold text-xs rounded-xl shadow-md transition-all flex items-center gap-2"
+                  >
+                    <Upload className="w-4 h-4" />
+                    <span>{uploadingAvatar ? 'Chargement...' : 'Choisir une photo dans mon appareil'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setAvatarUrl('')}
+                    className="px-3 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl transition-colors"
+                  >
+                    Effacer
+                  </button>
+                </div>
+
+                <p className="text-[11px] text-slate-400">
+                  Formats acceptés : JPG, PNG, WEBP. Taille max : 5 Mo.
+                </p>
+              </div>
             </div>
           </div>
 
-          {/* GALLERY MANAGEMENT SECTION (Section 3) */}
+          {/* GALLERY MANAGEMENT WITH DEVICE FILE PICKER */}
           <div className="space-y-4 pb-6 border-b border-slate-800">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-extrabold text-base text-white flex items-center gap-2">
-                  <Images className="w-5 h-5 text-violet-400" />
+                  <Images className="w-5 h-5 text-cyan-400" />
                   <span>Galerie Photo Personnelle</span>
                 </h3>
-                <p className="text-xs text-slate-400">Ajoutez des photos de vos sorties et activités (max 5 Mo)</p>
+                <p className="text-xs text-slate-400">Ajoutez les plus beaux moments de vos activités et voyages.</p>
               </div>
-            </div>
 
-            {/* Add Photo Input */}
-            <div className="flex gap-2">
               <input
-                type="text"
-                value={newPhotoUrl}
-                onChange={e => setNewPhotoUrl(e.target.value)}
-                placeholder="URL de l'image (ex: https://images.unsplash.com/...)"
-                className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-violet-500"
+                type="file"
+                ref={galleryInputRef}
+                onChange={handleGalleryFileSelect}
+                accept="image/*"
+                className="hidden"
               />
+
               <button
                 type="button"
-                onClick={handleAddPhoto}
-                className="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs rounded-xl transition-colors flex items-center gap-1.5"
+                onClick={() => galleryInputRef.current?.click()}
+                disabled={uploadingGallery}
+                className="px-4 py-2 bg-gradient-to-r from-violet-600 to-cyan-500 hover:from-violet-500 text-white font-extrabold text-xs rounded-xl shadow-lg transition-all flex items-center gap-1.5 shrink-0"
               >
                 <Plus className="w-4 h-4" />
-                Ajouter
+                <span>{uploadingGallery ? 'Ajout...' : '+ Ajouter une photo'}</span>
               </button>
             </div>
 
-            {/* Gallery Grid */}
-            {gallery.length > 0 && (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-                {gallery.map(img => (
-                  <div key={img.id} className="relative h-24 rounded-2xl overflow-hidden border border-slate-800 group">
-                    <img src={img.photo_url} alt="Galerie" className="w-full h-full object-cover" />
+            {/* Gallery Grid Tiles */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+              {/* Add Tile Button */}
+              <button
+                type="button"
+                onClick={() => galleryInputRef.current?.click()}
+                className="h-28 rounded-2xl border-2 border-dashed border-slate-700 hover:border-violet-500 bg-slate-900/50 hover:bg-slate-900 flex flex-col items-center justify-center gap-1.5 transition-all text-slate-400 hover:text-white"
+              >
+                <Plus className="w-6 h-6 text-violet-400" />
+                <span className="text-[11px] font-bold">Ajouter photo</span>
+              </button>
 
-                    {/* Overlay Actions */}
-                    <div className="absolute inset-0 bg-slate-950/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 p-1">
-                      <button
-                        type="button"
-                        onClick={() => handleSetMainAvatar(img.photo_url)}
-                        className="p-1.5 bg-violet-600 text-white rounded-lg hover:scale-110 transition-transform"
-                        title="Définir comme photo principale"
-                      >
-                        <Star className="w-3.5 h-3.5" />
-                      </button>
+              {gallery.map(img => (
+                <div key={img.id} className="relative h-28 rounded-2xl overflow-hidden border border-slate-800 group">
+                  <img src={img.photo_url} alt="Galerie" className="w-full h-full object-cover" />
 
-                      <button
-                        type="button"
-                        onClick={() => setPhotoToDelete(img.id)}
-                        className="p-1.5 bg-rose-600 text-white rounded-lg hover:scale-110 transition-transform"
-                        title="Supprimer la photo"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
+                  {/* Overlay Actions */}
+                  <div className="absolute inset-0 bg-slate-950/80 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 p-1">
+                    <button
+                      type="button"
+                      onClick={() => handleSetMainAvatar(img.photo_url)}
+                      className="p-2 bg-violet-600 text-white rounded-xl hover:scale-110 transition-transform"
+                      title="Mettre en photo principale"
+                    >
+                      <Star className="w-4 h-4" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setPhotoToDelete(img.id)}
+                      className="p-2 bg-rose-600 text-white rounded-xl hover:scale-110 transition-transform"
+                      title="Supprimer la photo"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
-                ))}
-              </div>
-            )}
+                </div>
+              ))}
+            </div>
           </div>
 
-          {/* Basic Fields */}
+          {/* BASIC PROFILE INFORMATION */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Prénom ou Pseudonyme</label>
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                Prénom ou Pseudonyme <span className="text-rose-400">*</span>
+              </label>
               <input
                 type="text"
+                required
                 value={displayName}
                 onChange={e => setDisplayName(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-violet-500"
+                placeholder="Ex: Alex, Sophie..."
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-violet-500 font-bold"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Ville d'origine</label>
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+                Ville actuelle
+              </label>
               <input
                 type="text"
                 value={city}
                 onChange={e => setCity(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-violet-500"
+                placeholder="Ex: Perpignan, Toulouse, Montpellier..."
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-violet-500 font-bold"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Bio / Présentation</label>
+            <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+              Bio / Présentation
+            </label>
             <textarea
               rows={3}
               value={bio}
               onChange={e => setBio(e.target.value)}
+              placeholder="Présentez-vous en quelques mots, ce que vous aimez faire lors des sorties amicales..."
               className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-violet-500"
             />
           </div>
 
-          {/* Activity Levels Customizer */}
+          {/* HUGE GEANT LIBRARY OF INTEREST TAGS (SÉLECTION PAR PINS/CHIPS) */}
+          <div className="space-y-4 pb-6 border-b border-slate-800">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <h3 className="font-extrabold text-base text-white flex items-center gap-2">
+                  <Tag className="w-5 h-5 text-violet-400" />
+                  <span>Mes Centres d'Intérêt ({selectedInterests.length} sélectionnés)</span>
+                </h3>
+                <p className="text-xs text-slate-400">Cliquez sur les activités que vous aimez pour enrichir votre profil.</p>
+              </div>
+
+              {/* Quick Search Interest Tags */}
+              <div className="relative">
+                <Search className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
+                <input
+                  type="text"
+                  value={interestSearchQuery}
+                  onChange={e => setInterestSearchQuery(e.target.value)}
+                  placeholder="Rechercher un intérêt..."
+                  className="pl-9 pr-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-violet-500"
+                />
+              </div>
+            </div>
+
+            {/* Selected Interests Chips Bar */}
+            {selectedInterests.length > 0 && (
+              <div className="p-3 bg-violet-950/40 rounded-2xl border border-violet-500/30 flex flex-wrap gap-2">
+                <span className="text-xs font-bold text-violet-300 self-center mr-1">Sélectionnés :</span>
+                {selectedInterests.map(interest => (
+                  <button
+                    key={interest}
+                    type="button"
+                    onClick={() => toggleInterest(interest)}
+                    className="px-3 py-1 bg-violet-600 text-white font-bold text-xs rounded-xl shadow-md flex items-center gap-1.5 hover:bg-rose-600 transition-colors"
+                  >
+                    <span>{interest}</span>
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Custom Interest Input */}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={customInterestInput}
+                onChange={e => setCustomInterestInput(e.target.value)}
+                placeholder="Ajouter un centre d'intérêt personnalisé..."
+                className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-violet-500"
+              />
+              <button
+                type="button"
+                onClick={handleAddCustomInterest}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl transition-colors"
+              >
+                + Ajouter
+              </button>
+            </div>
+
+            {/* Categorized Tag Library */}
+            <div className="space-y-6 pt-3 max-h-96 overflow-y-auto pr-2 scrollbar-thin">
+              {INTEREST_CATEGORIES.map(cat => {
+                const matchingTags = cat.tags.filter(t =>
+                  !interestSearchQuery || t.toLowerCase().includes(interestSearchQuery.toLowerCase())
+                );
+
+                if (matchingTags.length === 0) return null;
+
+                return (
+                  <div key={cat.category} className="space-y-2">
+                    <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-400">
+                      {cat.category}
+                    </h4>
+
+                    <div className="flex flex-wrap gap-2">
+                      {matchingTags.map(tag => {
+                        const isSelected = selectedInterests.includes(tag);
+
+                        return (
+                          <button
+                            key={tag}
+                            type="button"
+                            onClick={() => toggleInterest(tag)}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                              isSelected
+                                ? 'bg-gradient-to-r from-violet-600 to-cyan-500 text-white shadow-md ring-2 ring-violet-400'
+                                : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800'
+                            }`}
+                          >
+                            {isSelected && <Check className="w-3.5 h-3.5" />}
+                            <span>{tag}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* ACTIVITY LEVELS CUSTOMIZER */}
           <div className="space-y-3 pb-4 border-b border-slate-800">
             <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
               Niveau par activité principale
             </label>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
               <div>
-                <span className="text-slate-400 font-bold block mb-1">Randonnée</span>
-                <input
-                  type="text"
+                <span className="text-slate-400 font-bold block mb-1">Randonnée / Montagne</span>
+                <select
                   value={levels['Randonnée'] || ''}
                   onChange={e => setLevels({ ...levels, 'Randonnée': e.target.value })}
-                  placeholder="Ex: Intermédiaire, Débutant..."
                   className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white"
-                />
+                >
+                  <option value="">Non précisé</option>
+                  <option value="Débutant (Balades faciles)">Débutant (Balades faciles)</option>
+                  <option value="Intermédiaire (10-15 km)">Intermédiaire (10-15 km)</option>
+                  <option value="Sportif (Dénivelé fort)">Sportif (Dénivelé fort)</option>
+                  <option value="Expert / Bivouac">Expert / Bivouac</option>
+                </select>
               </div>
 
               <div>
                 <span className="text-slate-400 font-bold block mb-1">Vélo / VTT</span>
-                <input
-                  type="text"
+                <select
                   value={levels['Vélo'] || ''}
                   onChange={e => setLevels({ ...levels, 'Vélo': e.target.value })}
-                  placeholder="Ex: Sportif (25km/h)..."
                   className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white"
-                />
+                >
+                  <option value="">Non précisé</option>
+                  <option value="Loisir & Promenade">Loisir & Promenade</option>
+                  <option value="Sportif (20-25 km/h)">Sportif (20-25 km/h)</option>
+                  <option value="VTT Technique">VTT Technique</option>
+                  <option value="Cyclo Intense">Cyclo Intense</option>
+                </select>
               </div>
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Centres d'intérêt (séparés par des virgules)</label>
-            <input
-              type="text"
-              value={interestsText}
-              onChange={e => setInterestsText(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-violet-500"
-            />
-          </div>
-
-          {/* Stats Toggle */}
+          {/* STATS TOGGLE */}
           <div className="p-4 bg-slate-900 border border-slate-800 rounded-2xl flex items-center justify-between">
             <div>
               <p className="text-xs font-bold text-white">Afficher mes statistiques sociales</p>
@@ -275,18 +564,20 @@ export const EditProfilePage: React.FC = () => {
               type="checkbox"
               checked={showStats}
               onChange={e => setShowStats(e.target.checked)}
-              className="w-5 h-5 rounded text-violet-600 focus:ring-violet-500"
+              className="w-5 h-5 rounded text-violet-600 focus:ring-violet-500 cursor-pointer"
             />
           </div>
 
+          {/* MAIN SUBMIT BUTTON */}
           <button
             type="submit"
-            className="w-full py-3.5 bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-500 text-white font-extrabold text-xs rounded-xl shadow-lg hover:scale-[1.01] transition-all flex items-center justify-center gap-2"
+            className="w-full py-4 bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-500 text-white font-extrabold text-sm rounded-xl shadow-xl hover:scale-[1.01] transition-all flex items-center justify-center gap-2"
           >
-            <CheckCircle2 className="w-4 h-4" />
-            Enregistrer mes modifications
+            <CheckCircle2 className="w-5 h-5" />
+            Enregistrer toutes mes modifications
           </button>
 
+          {/* DELETE ACCOUNT */}
           <div className="pt-6 border-t border-slate-800 flex justify-end">
             <button
               type="button"
@@ -304,7 +595,7 @@ export const EditProfilePage: React.FC = () => {
 
       <Footer />
 
-      {/* Delete Photo Confirmation Modal (Section 9) */}
+      {/* Delete Photo Confirmation Modal */}
       {photoToDelete && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in">
           <div className="bg-[#0F172A] border border-slate-800 rounded-3xl p-6 max-w-md w-full space-y-4 text-white">
