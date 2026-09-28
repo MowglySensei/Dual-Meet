@@ -17,7 +17,8 @@ import {
   Sun,
   Users2,
   UserCheck,
-  ChevronDown
+  ChevronDown,
+  Search
 } from 'lucide-react';
 import { Logo } from './Logo';
 import { useAuth } from '../context/AuthContext';
@@ -426,6 +427,76 @@ export const Navbar: React.FC = () => {
 
       {/* Signature Quick Search Wizard Modal */}
       <QuickSearchModal isOpen={isQuickSearchOpen} onClose={() => setIsQuickSearchOpen(false)} />
+
+      {/* FIXED MOBILE BOTTOM NAVIGATION BAR FOR SMARTPHONES */}
+      {isAuthenticated && (
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0F172A]/95 backdrop-blur-xl border-t border-slate-800 shadow-2xl flex items-center justify-around py-2 px-1 text-[11px] font-bold text-slate-400">
+          <Link
+            to="/dashboard"
+            className={`flex flex-col items-center gap-1 p-1.5 transition-colors ${
+              isActive('/dashboard') ? 'text-violet-400 font-extrabold' : 'hover:text-white'
+            }`}
+          >
+            <Compass className="w-5 h-5" />
+            <span>Découvrir</span>
+          </Link>
+
+          <Link
+            to="/activities"
+            className={`flex flex-col items-center gap-1 p-1.5 transition-colors ${
+              isActive('/activities') ? 'text-violet-400 font-extrabold' : 'hover:text-white'
+            }`}
+          >
+            <Search className="w-5 h-5" style={{ width: '20px', height: '20px' }} />
+            <span>Sorties</span>
+          </Link>
+
+          <Link
+            to="/map"
+            className={`flex flex-col items-center gap-1 p-1.5 transition-colors ${
+              isActive('/map') ? 'text-cyan-400 font-extrabold' : 'hover:text-white'
+            }`}
+          >
+            <MapPin className="w-5 h-5" />
+            <span>GPS Carte</span>
+          </Link>
+
+          <Link
+            to="/travel"
+            className={`flex flex-col items-center gap-1 p-1.5 transition-colors ${
+              isActive('/travel') ? 'text-violet-400 font-extrabold' : 'hover:text-white'
+            }`}
+          >
+            <span className="text-base leading-none">✈️</span>
+            <span>Voyager</span>
+          </Link>
+
+          <Link
+            to="/messages"
+            className={`flex flex-col items-center gap-1 p-1.5 transition-colors relative ${
+              isActive('/messages') ? 'text-cyan-400 font-extrabold' : 'hover:text-white'
+            }`}
+          >
+            <MessageSquare className="w-5 h-5" />
+            <span>Tchat</span>
+            {unreadMessagesCount > 0 && (
+              <span className="absolute -top-1 right-1 w-4 h-4 bg-cyan-500 text-slate-950 text-[9px] font-black rounded-full flex items-center justify-center">
+                {unreadMessagesCount}
+              </span>
+            )}
+          </Link>
+
+          <Link
+            to="/profile/edit"
+            className={`flex flex-col items-center gap-1 p-1.5 transition-colors ${
+              isActive('/profile/edit') ? 'text-violet-400 font-extrabold' : 'hover:text-white'
+            }`}
+          >
+            <User className="w-5 h-5" />
+            <span>Profil</span>
+          </Link>
+        </div>
+      )}
     </>
   );
 };
