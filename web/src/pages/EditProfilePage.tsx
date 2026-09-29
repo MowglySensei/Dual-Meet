@@ -117,8 +117,8 @@ export const EditProfilePage: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      showToast('La taille de la photo ne doit pas dépasser 5 Mo.', 'error');
+    if (file.size > 25 * 1024 * 1024) {
+      showToast('La taille de la photo ne doit pas dépasser 25 Mo.', 'error');
       return;
     }
 
@@ -147,8 +147,8 @@ export const EditProfilePage: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      showToast('La taille de la photo ne doit pas dépasser 5 Mo.', 'error');
+    if (file.size > 25 * 1024 * 1024) {
+      showToast('La taille de la photo ne doit pas dépasser 25 Mo.', 'error');
       return;
     }
 
@@ -312,7 +312,7 @@ export const EditProfilePage: React.FC = () => {
                 </div>
 
                 <p className="text-[11px] text-slate-400">
-                  Formats acceptés : JPG, PNG, WEBP. Taille max : 5 Mo.
+                  Formats acceptés : JPG, PNG, WEBP. Haute résolution acceptée jusqu'à 25 Mo.
                 </p>
               </div>
             </div>
