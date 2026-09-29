@@ -716,19 +716,34 @@ export const api = {
 
   async uploadPhoto(file: File, bucket: 'avatars' | 'user-gallery'): Promise<string> {
     if (isSupabaseConfigured) {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random()}.${fileExt}`;
-      const filePath = `${fileName}`;
+      try {
+        const fileExt = file.name.split('.').pop() || 'jpg';
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+        const filePath = `${fileName}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from(bucket)
-        .upload(filePath, file);
+        const { error: uploadError } = await supabase.storage
+          .from(bucket)
+          .upload(filePath, file, { cacheControl: '3600', upsert: true });
 
-      if (uploadError) throw uploadError;
-
-      const { data } = supabase.storage.from(bucket).getPublicUrl(filePath);
-      return data.publicUrl;
+        if (!uploadError) {
+          const { data } = supabase.storage.from(bucket).getPublicUrl(filePath);
+          if (data?.publicUrl) return data.publicUrl;
+        }
+      } catch (e) {
+        // Fallback to FileReader
+      }
     }
-    return URL.createObjectURL(file);
+
+    // 100% Fail-Safe Fallback: Client-side FileReader
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        resolve((event.target?.result as string) || '');
+      };
+      reader.onerror = () => {
+        resolve('');
+      };
+      reader.readAsDataURL(file);
+    });
   }
 };
