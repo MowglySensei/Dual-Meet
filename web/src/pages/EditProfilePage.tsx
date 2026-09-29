@@ -96,6 +96,22 @@ export const EditProfilePage: React.FC = () => {
   // Activity Levels
   const [levels, setLevels] = useState<Record<string, string>>(() => user?.activity_levels || {});
 
+  // Synchronize form fields when user profile finishes loading asynchronously
+  React.useEffect(() => {
+    if (user) {
+      if (user.display_name) setDisplayName(user.display_name);
+      if (user.city) setCity(user.city);
+      if (user.phone) setPhone(user.phone);
+      if (user.bio) setBio(user.bio);
+      if (user.avatar_url) setAvatarUrl(user.avatar_url);
+      if (user.availability) setAvailability(user.availability);
+      if (user.interests?.length) setSelectedInterests(user.interests);
+      if (user.activity_levels) setLevels(user.activity_levels);
+      if (user.gallery?.length) setGallery(user.gallery);
+      setShowStats(user.show_activity_stats !== false);
+    }
+  }, [user]);
+
   // Handle Avatar Upload from Device Gallery / File Picker
   const handleAvatarFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
