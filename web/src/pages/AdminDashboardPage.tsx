@@ -1,14 +1,44 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { ShieldCheck, Users, Calendar, ShieldAlert, CheckCircle2, Trash2, Ban } from 'lucide-react';
-import { localStore } from '../lib/supabase';
+import { localStore, supabase, isSupabaseConfigured } from '../lib/supabase';
 import { useToast } from '../context/ToastContext';
 
 export const AdminDashboardPage: React.FC = () => {
   const { showToast } = useToast();
   const [reports, setReports] = useState(() => localStore.reports);
+
+  const [realAdminStats, setRealAdminStats] = useState({
+    members: 1,
+    activities: 0,
+    reports: 0,
+    communities: 0,
+  });
+
+  useEffect(() => {
+    const fetchRealAdminStats = async () => {
+      if (isSupabaseConfigured) {
+        try {
+          const { count: pCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
+          const { count: aCount } = await supabase.from('activities').select('*', { count: 'exact', head: true });
+          const { count: rCount } = await supabase.from('reports').select('*', { count: 'exact', head: true });
+          const { count: cCount } = await supabase.from('communities').select('*', { count: 'exact', head: true });
+
+          setRealAdminStats({
+            members: pCount || 1,
+            activities: aCount || 0,
+            reports: rCount || 0,
+            communities: cCount || 0,
+          });
+        } catch (e) {
+          // fallback
+        }
+      }
+    };
+    fetchRealAdminStats();
+  }, []);
 
   const pendingReports = reports.filter(r => r.status === 'pending');
 
@@ -46,31 +76,31 @@ export const AdminDashboardPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Stats Row */}
+        {/* Real Stats Row (0 Mytho) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
 
           <div className="bg-[#0F172A] border border-slate-800 rounded-3xl p-6 space-y-2">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Membres Inscrits</span>
-            <p className="text-3xl font-black text-white">1,420</p>
-            <p className="text-[11px] text-emerald-400">+28 cette semaine</p>
+            <p className="text-3xl font-black text-white">{realAdminStats.members}</p>
+            <p className="text-[11px] text-emerald-400 font-semibold">Base Supabase en direct</p>
           </div>
 
           <div className="bg-[#0F172A] border border-slate-800 rounded-3xl p-6 space-y-2">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Activités Ouvertes</span>
-            <p className="text-3xl font-black text-cyan-400">{localStore.activities.length}</p>
-            <p className="text-[11px] text-slate-400">Partout en France</p>
+            <p className="text-3xl font-black text-cyan-400">{realAdminStats.activities}</p>
+            <p className="text-[11px] text-slate-400 font-semibold">Toutes régions</p>
           </div>
 
           <div className="bg-[#0F172A] border border-slate-800 rounded-3xl p-6 space-y-2">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Signalements en attente</span>
-            <p className="text-3xl font-black text-rose-400">{pendingReports.length}</p>
+            <p className="text-3xl font-black text-rose-400">{realAdminStats.reports}</p>
             <p className="text-[11px] text-rose-300 font-semibold">À traiter par la modération</p>
           </div>
 
           <div className="bg-[#0F172A] border border-slate-800 rounded-3xl p-6 space-y-2">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Communautés</span>
-            <p className="text-3xl font-black text-violet-400">{localStore.communities.length}</p>
-            <p className="text-[11px] text-slate-400">Centres urbains & thématiques</p>
+            <p className="text-3xl font-black text-violet-400">{realAdminStats.communities}</p>
+            <p className="text-[11px] text-slate-400 font-semibold">Actives en ligne</p>
           </div>
 
         </div>
@@ -84,9 +114,9 @@ export const AdminDashboardPage: React.FC = () => {
             </h2>
           </div>
 
-          {reports.length > 0 ? (
+          {pendingReports.length > 0 ? (
             <div className="space-y-4">
-              {reports.map(rep => (
+              {pendingReports.map(rep => (
                 <div
                   key={rep.id}
                   className="p-4 bg-slate-900 border border-slate-800 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4"
@@ -104,26 +134,18 @@ export const AdminDashboardPage: React.FC = () => {
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
-                    {rep.status === 'pending' ? (
-                      <>
-                        <button
-                          onClick={() => handleDismissReport(rep.id)}
-                          className="px-3 py-1.5 bg-slate-800 text-slate-300 font-bold text-xs rounded-xl hover:bg-slate-700 transition-colors"
-                        >
-                          Classer sans suite
-                        </button>
-                        <button
-                          onClick={() => handleResolveReport(rep.id)}
-                          className="px-4 py-1.5 bg-rose-600 text-white font-bold text-xs rounded-xl shadow transition-colors"
-                        >
-                          Sanctionner / Résoudre
-                        </button>
-                      </>
-                    ) : (
-                      <span className="px-3 py-1 bg-emerald-500/20 text-emerald-300 font-bold text-xs rounded-xl">
-                        Traité ({rep.status})
-                      </span>
-                    )}
+                    <button
+                      onClick={() => handleDismissReport(rep.id)}
+                      className="px-3 py-1.5 bg-slate-800 text-slate-300 font-bold text-xs rounded-xl hover:bg-slate-700 transition-colors"
+                    >
+                      Classer sans suite
+                    </button>
+                    <button
+                      onClick={() => handleResolveReport(rep.id)}
+                      className="px-4 py-1.5 bg-rose-600 text-white font-bold text-xs rounded-xl shadow transition-colors"
+                    >
+                      Sanctionner / Résoudre
+                    </button>
                   </div>
                 </div>
               ))}
