@@ -101,7 +101,7 @@ export const COUNTRY_GUIDES: CountryGuide[] = [
 // SAMPLE DEMO DATA (FOR OFFLINE / DEMO MODE ONLY)
 // ==========================================
 
-export const MOCK_USERS: UserProfile[] = [
+const RAW_MOCK_USERS: UserProfile[] = [
   {
     id: 'user-1',
     display_name: 'Alexandre',
@@ -191,11 +191,11 @@ export const MOCK_USERS: UserProfile[] = [
   }
 ];
 
-export const MOCK_ACTIVITIES: Activity[] = [
+const RAW_MOCK_ACTIVITIES: Activity[] = [
   {
     id: 'act-1',
     organizer_id: 'user-1',
-    organizer: MOCK_USERS[0],
+    organizer: RAW_MOCK_USERS[0],
     title: 'Randonnée au Lac des Bouillouses & Pique-nique',
     slug: 'randonnee-au-lac-des-bouillouses-act-1',
     description: 'Une superbe boucle de 12 km autour des lacs du Capcir. Ambiance conviviale, rythme modéré accessible à tous. Prévoyez votre pique-nique et des chaussures de rando !',
@@ -215,12 +215,12 @@ export const MOCK_ACTIVITIES: Activity[] = [
     status: 'open',
     image_url: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&q=80&w=800',
     created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
-    participants: [MOCK_USERS[0], MOCK_USERS[1]],
+    participants: [RAW_MOCK_USERS[0], RAW_MOCK_USERS[1]],
   },
   {
     id: 'act-2',
     organizer_id: 'user-2',
-    organizer: MOCK_USERS[1],
+    organizer: RAW_MOCK_USERS[1],
     title: 'Soirée Bowling & Verre en centre-ville',
     slug: 'soiree-bowling-et-verre-act-2',
     description: 'Session bowling décontractée à Perpignan suivie d’un verre. Aucun niveau requis, juste de la bonne humeur pour rigoler et faire connaissance !',
@@ -240,12 +240,12 @@ export const MOCK_ACTIVITIES: Activity[] = [
     status: 'open',
     image_url: 'https://images.unsplash.com/photo-1538388149542-5e24932d11a8?auto=format&fit=crop&q=80&w=800',
     created_at: new Date(Date.now() - 3600000 * 5).toISOString(),
-    participants: [MOCK_USERS[1], MOCK_USERS[0], MOCK_USERS[3]],
+    participants: [RAW_MOCK_USERS[1], RAW_MOCK_USERS[0], RAW_MOCK_USERS[3]],
   },
   {
     id: 'act-3',
     organizer_id: 'user-3',
-    organizer: MOCK_USERS[2],
+    organizer: RAW_MOCK_USERS[2],
     title: 'Sortie Vélo de Route - Boucle du Pic Saint-Loup (65km)',
     slug: 'sortie-velo-pic-saint-loup-act-3',
     description: 'Sortie cyclo tonique d’environ 65 km avec 700m de dénivelé positif. Allure moyenne visée autour de 25-27 km/h. Pause café à mi-parcours !',
@@ -264,12 +264,12 @@ export const MOCK_ACTIVITIES: Activity[] = [
     status: 'open',
     image_url: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&q=80&w=800',
     created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
-    participants: [MOCK_USERS[2]],
+    participants: [RAW_MOCK_USERS[2]],
   },
   {
     id: 'act-4',
     organizer_id: 'user-4',
-    organizer: MOCK_USERS[3],
+    organizer: RAW_MOCK_USERS[3],
     title: 'Session Jeux de Société au Bar à Jeux Toulouse',
     slug: 'session-jeux-de-societe-act-4',
     description: 'Découverte de nouveaux jeux de stratégie et d’ambiance. Venez seul(e) ou accompagné(e), la communauté est très accueillante !',
@@ -288,13 +288,11 @@ export const MOCK_ACTIVITIES: Activity[] = [
     status: 'open',
     image_url: 'https://images.unsplash.com/photo-1610890716171-6b1bb98ffd09?auto=format&fit=crop&q=80&w=800',
     created_at: new Date(Date.now() - 86400000 * 1).toISOString(),
-    participants: [MOCK_USERS[3]],
+    participants: [RAW_MOCK_USERS[3]],
   }
 ];
 
-export const MOCK_RELATIONSHIPS: UserRelationship[] = [];
-
-export const MOCK_COMMUNITIES: Community[] = [
+const RAW_MOCK_COMMUNITIES: Community[] = [
   {
     id: 'com-1',
     name: 'Dual Meet Perpignan',
@@ -321,7 +319,13 @@ export const MOCK_COMMUNITIES: Community[] = [
   }
 ];
 
+export const MOCK_USERS: UserProfile[] = isSupabaseConfigured ? [] : RAW_MOCK_USERS;
+export const MOCK_ACTIVITIES: Activity[] = isSupabaseConfigured ? [] : RAW_MOCK_ACTIVITIES;
+export const MOCK_COMMUNITIES: Community[] = isSupabaseConfigured ? [] : RAW_MOCK_COMMUNITIES;
+
 export const MOCK_PARTNER_SEARCHES: PartnerSearch[] = [];
+
+export const MOCK_RELATIONSHIPS: UserRelationship[] = [];
 
 export const MOCK_NOTIFICATIONS: NotificationItem[] = [];
 

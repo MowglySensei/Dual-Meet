@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Sparkles,
@@ -23,10 +23,40 @@ import {
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { useAuth } from '../context/AuthContext';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 export const LandingPage: React.FC = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
+
+  const [stats, setStats] = useState({
+    members: 1,
+    online: 1,
+    activities: 0,
+    participations: 0,
+  });
+
+  useEffect(() => {
+    const fetchRealStats = async () => {
+      if (isSupabaseConfigured) {
+        try {
+          const { count: pCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
+          const { count: aCount } = await supabase.from('activities').select('*', { count: 'exact', head: true });
+          const { count: partCount } = await supabase.from('activity_participants').select('*', { count: 'exact', head: true });
+
+          setStats({
+            members: pCount || 1,
+            online: 1,
+            activities: aCount || 0,
+            participations: partCount || 0,
+          });
+        } catch (e) {
+          // fallback
+        }
+      }
+    };
+    fetchRealStats();
+  }, []);
 
   const sampleCategories = [
     { name: 'Randonnée', icon: Mountain, img: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&q=80&w=600', desc: 'Sentiers, bivouacs et lacs en montagne' },
@@ -241,15 +271,15 @@ export const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* LIVE COMMUNITY STATS BAR */}
+      {/* REAL DYNAMIC COMMUNITY STATS BAR (0 MYTHO) */}
       <section className="py-8 bg-slate-950 border-y border-slate-800/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="p-6 rounded-3xl bg-[#0F172A] border border-slate-800 shadow-2xl flex flex-wrap items-center justify-around gap-6 text-xs font-bold text-slate-300">
             <div className="flex items-center gap-3">
               <span className="w-3 h-3 rounded-full bg-emerald-400 animate-pulse"></span>
               <div>
-                <span className="text-white font-black text-lg block">184</span>
-                <span className="text-slate-400 text-xs">Membres inscrits</span>
+                <span className="text-white font-black text-lg block">{stats.members}</span>
+                <span className="text-slate-400 text-xs">{stats.members > 1 ? 'Membres inscrits' : 'Membre inscrit'}</span>
               </div>
             </div>
 
@@ -258,7 +288,7 @@ export const LandingPage: React.FC = () => {
             <div className="flex items-center gap-3">
               <span className="w-3 h-3 rounded-full bg-cyan-400 animate-ping"></span>
               <div>
-                <span className="text-cyan-300 font-black text-lg block">12</span>
+                <span className="text-cyan-300 font-black text-lg block">{stats.online}</span>
                 <span className="text-slate-400 text-xs">En ligne en ce moment</span>
               </div>
             </div>
@@ -268,8 +298,8 @@ export const LandingPage: React.FC = () => {
             <div className="flex items-center gap-3">
               <span className="text-violet-400 text-xl">⚡</span>
               <div>
-                <span className="text-white font-black text-lg block">37</span>
-                <span className="text-slate-400 text-xs">Activités proposées</span>
+                <span className="text-white font-black text-lg block">{stats.activities}</span>
+                <span className="text-slate-400 text-xs">{stats.activities > 1 ? 'Activités proposées' : 'Activité proposée'}</span>
               </div>
             </div>
 
@@ -278,8 +308,8 @@ export const LandingPage: React.FC = () => {
             <div className="flex items-center gap-3">
               <span className="text-amber-400 text-xl">🤝</span>
               <div>
-                <span className="text-white font-black text-lg block">96</span>
-                <span className="text-slate-400 text-xs">Participations amicales</span>
+                <span className="text-white font-black text-lg block">{stats.participations}</span>
+                <span className="text-slate-400 text-xs">{stats.participations > 1 ? 'Participations amicales' : 'Participation amicale'}</span>
               </div>
             </div>
           </div>

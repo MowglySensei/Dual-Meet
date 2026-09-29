@@ -19,7 +19,8 @@ import { Footer } from '../components/Footer';
 import { ActivityCard } from '../components/ActivityCard';
 import { ActivityCardSkeleton } from '../components/Skeleton';
 import { useAuth } from '../context/AuthContext';
-import { localStore } from '../lib/supabase';
+import { localStore, supabase, isSupabaseConfigured, api } from '../lib/supabase';
+import { Activity } from '../types';
 
 export const DashboardPage: React.FC = () => {
   const { user } = useAuth();
@@ -27,25 +28,56 @@ export const DashboardPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [feedMode, setFilterFeedMode] = useState<'priority' | 'contacts' | 'spontaneous'>('priority');
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [activitiesList, setActivitiesList] = useState<Activity[]>([]);
+
+  const [realStats, setRealStats] = useState({
+    members: 1,
+    online: 1,
+    activities: 0,
+    participations: 0,
+  });
 
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 400);
-    return () => clearTimeout(timer);
+    const fetchData = async () => {
+      setIsLoading(true);
+      const acts = await api.getActivities();
+      setActivitiesList(acts);
+
+      if (isSupabaseConfigured) {
+        try {
+          const { count: pCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
+          const { count: aCount } = await supabase.from('activities').select('*', { count: 'exact', head: true });
+          const { count: partCount } = await supabase.from('activity_participants').select('*', { count: 'exact', head: true });
+
+          setRealStats({
+            members: pCount || 1,
+            online: 1,
+            activities: aCount || 0,
+            participations: partCount || 0,
+          });
+        } catch (e) {
+          // fallback
+        }
+      }
+      setIsLoading(false);
+    };
+
+    fetchData();
   }, []);
 
   // Smart Priority Feed (Section 2 & 5)
-  const priorityActivities = localStore.getPriorityFeed(user);
+  const priorityActivities = localStore.getPriorityFeed(user, activitiesList);
   const contactsList = user ? localStore.getContactsList(user.id) : [];
   const contactIds = contactsList.map(c => c.id);
 
-  const myUpcomingOutings = localStore.activities.filter(
+  const myUpcomingOutings = activitiesList.filter(
     a => a.participants?.some(p => p.id === user?.id) || a.organizer_id === user?.id
   ).slice(0, 2);
 
   const pendingNotifsCount = localStore.notifications.filter(n => !n.is_read).length;
 
-  const contactActivities = priorityActivities.filter(a => contactIds.includes(a.organizer_id));
-  const spontaneousActivities = priorityActivities.filter(a => a.is_spontaneous);
+  const spontaneousActivities = activitiesList.filter(a => a.is_spontaneous && a.status === 'open');
+  const contactActivities = activitiesList.filter(a => contactIds.includes(a.organizer_id));
 
   const activeSource = feedMode === 'contacts' ? contactActivities : feedMode === 'spontaneous' ? spontaneousActivities : priorityActivities;
 
@@ -90,22 +122,22 @@ export const DashboardPage: React.FC = () => {
               Ravi de te revoir, <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-cyan-400">{user?.display_name || 'Ami Dual Meet'}</span> !
             </h1>
 
-            <p className="text-sm sm:text-base text-slate-300 leading-relaxed font-medium">
-              Que souhaites-tu faire aujourd'hui près de <strong className="text-cyan-300">{user?.city || 'Perpignan'}</strong> ? Découvre les sorties créées par la communauté ou lance la tienne !
+            <p className="text-sm text-slate-300 leading-relaxed font-medium">
+              Que souhaites-tu faire aujourd'hui ? Propose une sortie ou rejoins des membres motivés près de chez toi.
             </p>
 
-            <div className="pt-2 flex flex-wrap items-center gap-4">
+            <div className="flex flex-wrap items-center gap-3 pt-2">
               <Link
                 to="/activities/create"
-                className="px-6 py-3.5 bg-gradient-to-r from-violet-600 to-cyan-500 hover:from-violet-500 hover:to-cyan-400 text-white font-extrabold text-xs rounded-2xl shadow-lg shadow-violet-600/30 transition-all hover:scale-105 flex items-center gap-2"
+                className="px-6 py-3.5 bg-gradient-to-r from-violet-600 to-cyan-500 hover:from-violet-500 hover:to-cyan-400 text-white font-extrabold text-xs rounded-xl shadow-xl shadow-violet-600/30 hover:scale-105 transition-all flex items-center gap-2"
               >
                 <PlusCircle className="w-4 h-4" />
-                Créer une sortie
+                Créer une activité
               </Link>
 
               <Link
                 to="/map"
-                className="px-6 py-3.5 bg-slate-900 hover:bg-slate-800 text-slate-200 font-bold text-xs rounded-2xl border border-slate-700 hover:border-slate-500 transition-all flex items-center gap-2"
+                className="px-5 py-3.5 bg-slate-900 hover:bg-slate-800 text-slate-200 font-bold text-xs rounded-xl border border-slate-700 flex items-center gap-2 transition-colors"
               >
                 <MapPin className="w-4 h-4 text-cyan-400" />
                 Voir la carte interactive
@@ -114,19 +146,19 @@ export const DashboardPage: React.FC = () => {
           </div>
         </div>
 
-        {/* LIVE COMMUNITY STATS COUNTER BAR */}
+        {/* REAL DYNAMIC COMMUNITY STATS BAR (0 MYTHO) */}
         <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-slate-900 via-[#0F172A] to-slate-900 border border-slate-800 shadow-xl flex flex-wrap items-center justify-around gap-4 text-xs font-bold text-slate-300">
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span className="text-white font-extrabold text-sm">184</span>
-            <span className="text-slate-400">membres inscrits</span>
+            <span className="text-white font-extrabold text-sm">{realStats.members}</span>
+            <span className="text-slate-400">{realStats.members > 1 ? 'membres inscrits' : 'membre inscrit'}</span>
           </div>
 
           <div className="h-4 w-px bg-slate-800 hidden sm:block"></div>
 
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping"></span>
-            <span className="text-cyan-300 font-extrabold text-sm">12</span>
+            <span className="text-cyan-300 font-extrabold text-sm">{realStats.online}</span>
             <span className="text-slate-400">en ligne en ce moment</span>
           </div>
 
@@ -134,16 +166,16 @@ export const DashboardPage: React.FC = () => {
 
           <div className="flex items-center gap-2">
             <span className="text-violet-400 text-sm">⚡</span>
-            <span className="text-white font-extrabold text-sm">37</span>
-            <span className="text-slate-400">activités proposées</span>
+            <span className="text-white font-extrabold text-sm">{realStats.activities}</span>
+            <span className="text-slate-400">{realStats.activities > 1 ? 'activités proposées' : 'activité proposée'}</span>
           </div>
 
           <div className="h-4 w-px bg-slate-800 hidden sm:block"></div>
 
           <div className="flex items-center gap-2">
             <span className="text-amber-400 text-sm">🤝</span>
-            <span className="text-white font-extrabold text-sm">96</span>
-            <span className="text-slate-400">participations amicales</span>
+            <span className="text-white font-extrabold text-sm">{realStats.participations}</span>
+            <span className="text-slate-400">{realStats.participations > 1 ? 'participations amicales' : 'participation amicale'}</span>
           </div>
         </div>
 
@@ -159,7 +191,7 @@ export const DashboardPage: React.FC = () => {
                   <span>Mes prochaines sorties</span>
                 </h3>
                 <Link to="/my-activities" className="text-xs font-bold text-violet-400 hover:underline">
-                  Voir tout ({localStore.activities.length}) →
+                  Voir tout ({activitiesList.length}) →
                 </Link>
               </div>
 
@@ -167,120 +199,116 @@ export const DashboardPage: React.FC = () => {
                 {myUpcomingOutings.map(act => (
                   <div key={act.id} className="p-3.5 bg-slate-900/90 rounded-2xl border border-slate-800 flex items-center justify-between gap-3">
                     <div>
-                      <span className="text-[10px] font-bold text-violet-300 uppercase">{act.category}</span>
-                      <h4 className="font-bold text-xs text-white truncate max-w-[180px]">{act.title}</h4>
-                      <p className="text-[11px] text-slate-400 mt-0.5">📍 {act.city}</p>
+                      <span className="px-2 py-0.5 bg-violet-600/30 text-violet-300 text-[10px] font-bold rounded uppercase">
+                        {act.category}
+                      </span>
+                      <h4 className="font-bold text-xs text-white mt-1 line-clamp-1">{act.title}</h4>
+                      <p className="text-[10px] text-slate-400">📍 {act.city}</p>
                     </div>
-                    <Link
-                      to={`/activity/${act.id}`}
-                      className="p-2 bg-violet-600/20 text-violet-300 rounded-xl hover:bg-violet-600 hover:text-white transition-colors"
-                    >
-                      <ArrowRight className="w-4 h-4" />
+                    <Link to={`/activity/${act.id}`} className="px-3 py-1.5 bg-violet-600 text-white font-bold text-[10px] rounded-lg shadow shrink-0">
+                      Voir
                     </Link>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Quick Stats & Notifications Card */}
+            {/* Quick Notifs Summary */}
             <div className="bg-[#0F172A] border border-slate-800 rounded-3xl p-6 space-y-4 shadow-xl flex flex-col justify-between">
-              <div className="flex items-center justify-between">
-                <h3 className="font-extrabold text-base text-white flex items-center gap-2">
-                  <Bell className="w-5 h-5 text-cyan-400" />
-                  <span>Notifications</span>
-                </h3>
-                {pendingNotifsCount > 0 && (
-                  <span className="px-2.5 py-0.5 bg-violet-600 text-white font-extrabold text-[10px] rounded-full">
-                    {pendingNotifsCount} nouvelle(s)
-                  </span>
-                )}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-extrabold text-base text-white flex items-center gap-2">
+                    <Bell className="w-5 h-5 text-cyan-400" />
+                    <span>Notifications</span>
+                  </h3>
+                  {pendingNotifsCount > 0 && (
+                    <span className="px-2.5 py-0.5 bg-cyan-500 text-slate-950 font-black text-xs rounded-full">
+                      {pendingNotifsCount} nouvelle(s)
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-slate-400">
+                  {pendingNotifsCount > 0 ? `Vous avez ${pendingNotifsCount} notification(s) en attente.` : 'Aucune nouvelle notification pour le moment.'}
+                </p>
               </div>
-
-              <p className="text-xs text-slate-300 leading-relaxed">
-                {pendingNotifsCount > 0
-                  ? `Vous avez ${pendingNotifsCount} nouvelle(s) notification(s) de contacts ou de sorties.`
-                  : 'Aucune nouvelle notification pour le moment. Vous êtes à jour !'}
-              </p>
 
               <Link
                 to="/notifications"
-                className="block text-center w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-slate-200 font-bold text-xs rounded-xl border border-slate-700 transition-colors"
+                className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 font-bold text-xs rounded-xl text-center block transition-colors"
               >
-                Ouvrir le centre de notifications
+                Accéder aux notifications
               </Link>
             </div>
 
           </div>
         )}
 
-        {/* FEED MODE TABS (Section 5) */}
-        <div className="flex items-center gap-3 border-b border-slate-800 pb-4 overflow-x-auto">
-          <button
-            onClick={() => setFilterFeedMode('priority')}
-            className={`px-5 py-2.5 rounded-2xl text-xs font-extrabold transition-all flex items-center gap-2 ${
-              feedMode === 'priority'
-                ? 'bg-gradient-to-r from-violet-600 to-cyan-500 text-white shadow-lg'
-                : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
-            }`}
-          >
-            <Sparkles className="w-4 h-4" />
-            <span>Pour toi (Priorité géographique & intérêts)</span>
-          </button>
+        {/* FEED FILTER BAR & SEARCH (Section 5) */}
+        <div className="space-y-6">
 
-          <button
-            onClick={() => setFilterFeedMode('contacts')}
-            className={`px-5 py-2.5 rounded-2xl text-xs font-extrabold transition-all flex items-center gap-2 ${
-              feedMode === 'contacts'
-                ? 'bg-violet-600 text-white shadow-lg'
-                : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
-            }`}
-          >
-            <UserCheck className="w-4 h-4" />
-            <span>Activités de mes contacts ({contactActivities.length})</span>
-          </button>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-800">
 
-          <button
-            onClick={() => setFilterFeedMode('spontaneous')}
-            className={`px-5 py-2.5 rounded-2xl text-xs font-extrabold transition-all flex items-center gap-2 ${
-              feedMode === 'spontaneous'
-                ? 'bg-amber-500 text-slate-950 shadow-lg'
-                : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
-            }`}
-          >
-            <Zap className="w-4 h-4 fill-current" />
-            <span>Spontanées ({spontaneousActivities.length})</span>
-          </button>
-        </div>
+            {/* Feed Mode Tabs */}
+            <div className="flex items-center gap-1.5 bg-slate-900 p-1.5 rounded-2xl border border-slate-800 self-start">
+              <button
+                onClick={() => setFilterFeedMode('priority')}
+                className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all ${
+                  feedMode === 'priority'
+                    ? 'bg-gradient-to-r from-violet-600 to-cyan-500 text-white shadow-lg'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                🎯 Fil Prioritaire
+              </button>
 
-        {/* Quick Search & Category Filters */}
-        <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <button
+                onClick={() => setFilterFeedMode('contacts')}
+                className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 ${
+                  feedMode === 'contacts'
+                    ? 'bg-gradient-to-r from-violet-600 to-cyan-500 text-white shadow-lg'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <UserCheck className="w-3.5 h-3.5" />
+                <span>Mes Contacts ({contactsList.length})</span>
+              </button>
 
-            <div className="relative w-full sm:w-80">
-              <Search className="absolute left-3.5 top-3 w-4 h-4 text-slate-500" />
+              <button
+                onClick={() => setFilterFeedMode('spontaneous')}
+                className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 ${
+                  feedMode === 'spontaneous'
+                    ? 'bg-gradient-to-r from-violet-600 to-cyan-500 text-white shadow-lg'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Zap className="w-3.5 h-3.5 text-amber-400 fill-current" />
+                <span>Spontanés ({spontaneousActivities.length})</span>
+              </button>
+            </div>
+
+            {/* Search Input */}
+            <div className="relative max-w-xs w-full">
+              <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                placeholder="Chercher une ville, une activité..."
-                className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white focus:outline-none focus:border-violet-500 transition-colors"
+                placeholder="Rechercher par titre, ville..."
+                className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-10 pr-4 py-2 text-xs text-white focus:outline-none focus:border-violet-500"
               />
             </div>
 
-            <p className="text-xs text-slate-400 font-semibold shrink-0">
-              {filteredActivities.length} activité(s) disponible(s)
-            </p>
-
           </div>
 
+          {/* Category Chips Bar */}
           <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
             {categories.map(cat => (
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
                   selectedCategory === cat
-                    ? 'bg-violet-600 text-white shadow-lg shadow-violet-600/30'
+                    ? 'bg-violet-600 text-white shadow-md'
                     : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
                 }`}
               >
@@ -288,42 +316,37 @@ export const DashboardPage: React.FC = () => {
               </button>
             ))}
           </div>
-        </div>
 
-        {/* FEED GRID WITH SKELETON LOADING & EMPTY STATES */}
-        <div className="space-y-4">
+          {/* ACTIVITIES FEED GRID */}
           {isLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <ActivityCardSkeleton />
               <ActivityCardSkeleton />
               <ActivityCardSkeleton />
             </div>
           ) : filteredActivities.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredActivities.map(act => (
                 <ActivityCard key={act.id} activity={act} />
               ))}
             </div>
           ) : (
-            <div className="p-12 text-center bg-slate-900/60 rounded-3xl border border-slate-800 space-y-4">
+            <div className="py-16 text-center bg-[#0F172A] rounded-3xl border border-slate-800 space-y-4">
               <Compass className="w-12 h-12 text-slate-600 mx-auto" />
-              <h3 className="text-lg font-bold text-white">
-                {feedMode === 'contacts' ? 'Aucune activité publiée par vos contacts' : 'Aucune sortie correspondant à ces critères'}
-              </h3>
+              <h3 className="font-extrabold text-white text-lg">Aucune activité pour le moment dans ce secteur</h3>
               <p className="text-xs text-slate-400 max-w-md mx-auto">
-                {feedMode === 'contacts'
-                  ? 'Ajoutez de nouveaux contacts amicaux sur la plateforme pour suivre leurs sorties.'
-                  : 'Pourquoi ne pas publier la toute première sortie pour cette catégorie ?'}
+                Soyez le tout premier membre à proposer une sortie conviviale près de chez vous !
               </p>
               <Link
                 to="/activities/create"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-violet-600 text-white font-bold text-xs rounded-xl shadow-lg"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-violet-600 to-cyan-500 text-white font-extrabold text-xs rounded-xl shadow-lg hover:scale-105 transition-all"
               >
                 <PlusCircle className="w-4 h-4" />
-                Créer une activité
+                Créer la première activité
               </Link>
             </div>
           )}
+
         </div>
 
       </main>
