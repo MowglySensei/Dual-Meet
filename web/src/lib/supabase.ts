@@ -37,6 +37,7 @@ export const COUNTRY_GUIDES: CountryGuide[] = [
     conditions: 'Âge : 18 à 35 ans • Passeport valide • Preuve de fonds (~5 000 AUD)',
     cost: '~640 AUD (~390 €)',
     popular_cities: ['Sydney', 'Melbourne', 'Brisbane', 'Perth', 'Cairns'],
+    official_url: 'https://immi.homeaffairs.gov.au/visas/getting-a-visa/visa-listing/work-holiday-417',
     tips: [
       'Demande de visa en ligne sur le site officiel de l’Immigration australienne.',
       'Acheter un van d’occasion pour explorer la côte Est en roadtrip.',
@@ -50,6 +51,7 @@ export const COUNTRY_GUIDES: CountryGuide[] = [
     conditions: 'Âge : 18 à 35 ans • Tirage au sort (Bassin EIC) • Preuve de fonds (2 500 CAD)',
     cost: '~357 CAD (~240 €)',
     popular_cities: ['Montreal', 'Vancouver', 'Toronto', 'Quebec', 'Calgary'],
+    official_url: 'https://www.canada.ca/fr/immigration-refugies-citoyennete/services/travailler-canada/eic.html',
     tips: [
       'Inscrivez-vous dès l’ouverture des bassins EIC chaque année.',
       'Prévoyez des vêtements très chauds pour les mois d’hiver (-20°C).',
@@ -63,6 +65,7 @@ export const COUNTRY_GUIDES: CountryGuide[] = [
     conditions: 'Âge : 18 à 30 ans (ou 35 pour certaines nationalités) • Preuve de fonds (4 200 NZD)',
     cost: '~420 NZD (~230 €)',
     popular_cities: ['Auckland', 'Wellington', 'Christchurch', 'Queenstown'],
+    official_url: 'https://www.immigration.govt.nz/new-zealand-visas/visas/visa/france-working-holiday-visa',
     tips: [
       'Visa facile à obtenir en ligne avec réponse rapide.',
       'Idéal pour louer un van et explorer les îles du Nord et du Sud.',
@@ -76,6 +79,7 @@ export const COUNTRY_GUIDES: CountryGuide[] = [
     conditions: 'Âge : 18 à 30 ans • Preuve de fonds (4 500 € ou 3 000 € avec billet A/R)',
     cost: 'Gratuit',
     popular_cities: ['Tokyo', 'Kyoto', 'Osaka', 'Fukuoka', 'Sapporo'],
+    official_url: 'https://www.fr.emb-japan.go.jp/itpr_fr/consulat_visa_vacances-travail.html',
     tips: [
       'Compétences de base en japonais recommandées pour trouver un job étudiant/arubaito.',
       'Excellente opportunité d’immersion culturelle et de découverte de la gastronomie.',
@@ -89,6 +93,7 @@ export const COUNTRY_GUIDES: CountryGuide[] = [
     conditions: 'Âge : 18 à 30 ans • Preuve de fonds (~3 000 €) • Extrait de casier judiciaire',
     cost: 'Gratuit',
     popular_cities: ['Séoul', 'Busan', 'Incheon', 'Jeju'],
+    official_url: 'https://overseas.mofa.go.kr/fr-fr/brd/m_27218/view.do?seq=2',
     tips: [
       'Visa gratuit à faire auprès de l’ambassade de Corée.',
       'Logements en colocation ou goshiwon très abordables à Séoul.',

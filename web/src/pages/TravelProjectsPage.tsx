@@ -186,16 +186,16 @@ export const TravelProjectsPage: React.FC = () => {
           ) : (
             <div className="p-12 text-center bg-slate-900/60 rounded-3xl border border-slate-800 space-y-4">
               <Plane className="w-12 h-12 text-slate-600 mx-auto" />
-              <h3 className="font-bold text-white text-lg">Aucun projet de voyage publié pour le moment</h3>
+              <h3 className="font-bold text-white text-lg">Pas encore de projet de voyage</h3>
               <p className="text-xs text-slate-400 max-w-md mx-auto">
-                Soyez le tout premier à proposer un projet de départ en {selectedCountry === 'Tous' ? 'PVT ou roadtrip' : selectedCountry} !
+                Tu veux partir, mais pas forcément seul ? Crée le premier projet de départ !
               </p>
               <Link
                 to="/travel/create"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-violet-600 to-cyan-500 text-white font-extrabold text-xs rounded-xl shadow-lg"
               >
                 <PlusCircle className="w-4 h-4" />
-                Créer un projet de voyage
+                Créer le premier projet de voyage
               </Link>
             </div>
           )}
@@ -204,12 +204,25 @@ export const TravelProjectsPage: React.FC = () => {
         {/* COUNTRY GUIDE CARD SECTION (INFORMATIF ET PRATIQUE) */}
         {activeGuide && (
           <div className="bg-[#0F172A] border border-cyan-500/30 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl">
-            <div className="flex items-center gap-3">
-              <span className="text-3xl">{activeGuide.flag}</span>
-              <div>
-                <h3 className="text-xl font-bold text-white">Guide Officiel & Conseils : {activeGuide.country}</h3>
-                <p className="text-xs text-cyan-400">{activeGuide.visa_name}</p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">{activeGuide.flag}</span>
+                <div>
+                  <h3 className="text-xl font-bold text-white">Guide Officiel & Visa : {activeGuide.country}</h3>
+                  <p className="text-xs text-cyan-400">{activeGuide.visa_name}</p>
+                </div>
               </div>
+
+              {activeGuide.official_url && (
+                <a
+                  href={activeGuide.official_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-cyan-300 font-bold text-xs rounded-xl border border-cyan-500/30 transition-colors inline-flex items-center gap-1.5 shrink-0"
+                >
+                  <span>Site Officiel Immigration ↗</span>
+                </a>
+              )}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
@@ -231,6 +244,10 @@ export const TravelProjectsPage: React.FC = () => {
                   <li key={idx}>{tip}</li>
                 ))}
               </ul>
+            </div>
+
+            <div className="p-3.5 bg-slate-950/80 rounded-2xl border border-slate-800 text-[11px] text-slate-400">
+              <span className="font-bold text-amber-300">⚠️ Avertissement Légal :</span> Dual Meet n'est pas une autorité gouvernementale. Pour toutes vos démarches administratives officielles, référez-vous toujours aux sites d'immigration officiels de chaque gouvernement.
             </div>
           </div>
         )}

@@ -259,4 +259,5 @@ export interface CountryGuide {
   cost: string;
   popular_cities: string[];
   tips: string[];
+  official_url: string;
 }
