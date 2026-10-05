@@ -53,6 +53,7 @@ export interface UserProfile {
   id: string;
   display_name: string;
   email?: string;
+  email_verified?: boolean;
   phone?: string;
   phone_verified?: boolean;
   age?: number;

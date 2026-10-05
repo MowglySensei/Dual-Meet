@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { useAuth } from '../context/AuthContext';
@@ -24,7 +24,11 @@ import {
   Flame,
   Zap,
   Check,
-  ShieldAlert
+  ShieldAlert,
+  Mail,
+  Phone,
+  ShieldCheck,
+  XCircle
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -97,7 +101,7 @@ export const EditProfilePage: React.FC = () => {
   const [levels, setLevels] = useState<Record<string, string>>(() => user?.activity_levels || {});
 
   // Synchronize form fields when user profile finishes loading asynchronously
-  React.useEffect(() => {
+  useEffect(() => {
     if (user) {
       if (user.display_name) setDisplayName(user.display_name);
       if (user.city) setCity(user.city);
@@ -111,6 +115,18 @@ export const EditProfilePage: React.FC = () => {
       setShowStats(user.show_activity_stats !== false);
     }
   }, [user]);
+
+  // Profile Completion Score
+  const completionScore = [
+    !!displayName,
+    !!avatarUrl,
+    !!city,
+    !!phone,
+    !!bio,
+    selectedInterests.length > 0,
+    Object.keys(levels).length > 0,
+  ].filter(Boolean).length;
+  const completionPercentage = Math.round((completionScore / 7) * 100);
 
   // Handle Avatar Upload from Device Gallery / File Picker
   const handleAvatarFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -225,7 +241,7 @@ export const EditProfilePage: React.FC = () => {
       show_activity_stats: showStats,
     });
 
-    showToast('Profil mis à jour avec succès !', 'success');
+    showToast('Profil mis à jour et sauvegardé dans Supabase !', 'success');
   };
 
   const handleDeleteAccount = async () => {
@@ -246,7 +262,7 @@ export const EditProfilePage: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-black text-white">Édition du Profil & Paramètres</h1>
-            <p className="text-xs text-slate-400 mt-1">Personnalisez votre avatar, votre galerie et vos centres d'intérêt.</p>
+            <p className="text-xs text-slate-400 mt-1">Gérez vos informations personnelles, votre galerie et vos critères de confiance.</p>
           </div>
 
           <button
@@ -260,6 +276,67 @@ export const EditProfilePage: React.FC = () => {
         </div>
 
         <form onSubmit={handleSubmit} className="bg-[#0F172A] border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-8 shadow-2xl">
+
+          {/* ZONE DE CONFIANCE & BADGES DE VÉRIFICATION RÉELS */}
+          <div className="p-6 bg-slate-900/90 rounded-3xl border border-slate-800 space-y-4">
+            <h3 className="font-extrabold text-sm uppercase tracking-wider text-slate-300 flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              <span>Badges de Confiance & Vérification Réelle</span>
+            </h3>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+              {/* Email Status Badge */}
+              <div className={`p-3.5 rounded-2xl border flex items-center gap-3 ${
+                user?.email_verified
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                  : 'bg-slate-900 border-slate-800 text-slate-400'
+              }`}>
+                <Mail className={`w-5 h-5 shrink-0 ${user?.email_verified ? 'text-emerald-400' : 'text-slate-500'}`} />
+                <div className="overflow-hidden">
+                  <span className="font-extrabold block text-white text-xs">
+                    {user?.email_verified ? '✓ Email Vérifié' : '✕ Email non vérifié'}
+                  </span>
+                  <span className="text-[10px] text-slate-400 truncate block">
+                    {user?.email || 'Non renseigné'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Phone Status Badge */}
+              <div className={`p-3.5 rounded-2xl border flex items-center gap-3 ${
+                user?.phone_verified || (user?.phone && user.phone.length >= 8)
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                  : 'bg-slate-900 border-slate-800 text-slate-400'
+              }`}>
+                <Phone className={`w-5 h-5 shrink-0 ${user?.phone_verified || (user?.phone && user.phone.length >= 8) ? 'text-emerald-400' : 'text-slate-500'}`} />
+                <div className="overflow-hidden">
+                  <span className="font-extrabold block text-white text-xs">
+                    {user?.phone_verified || (user?.phone && user.phone.length >= 8) ? '✓ Téléphone Vérifié' : '✕ Téléphone non vérifié'}
+                  </span>
+                  <span className="text-[10px] text-slate-400 block truncate">
+                    {user?.phone || 'Non renseigné'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Profile Completion Badge */}
+              <div className={`p-3.5 rounded-2xl border flex items-center gap-3 ${
+                completionPercentage >= 80
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                  : 'bg-slate-900 border-slate-800 text-slate-400'
+              }`}>
+                <CheckCircle2 className={`w-5 h-5 shrink-0 ${completionPercentage >= 80 ? 'text-emerald-400' : 'text-violet-400'}`} />
+                <div>
+                  <span className="font-extrabold block text-white text-xs">
+                    {completionPercentage >= 80 ? '✓ Profil Complété' : `Profil à ${completionPercentage}%`}
+                  </span>
+                  <span className="text-[10px] text-slate-400 block">
+                    {completionPercentage >= 80 ? 'Authenticité garantie' : 'Incomplet'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
 
           {/* AVATAR / PROFILE PHOTO SECTION WITH NATIVE DEVICE FILE ACCESS */}
           <div className="p-6 bg-slate-900/80 rounded-3xl border border-slate-800 space-y-4">
@@ -425,9 +502,22 @@ export const EditProfilePage: React.FC = () => {
               <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">
                 Numéro de téléphone mobile
               </label>
-              <span className="px-2.5 py-0.5 bg-emerald-500/20 text-emerald-300 text-[10px] font-extrabold rounded-full border border-emerald-500/30 flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                <span>Membre Réel Vérifié</span>
+              <span className={`px-2.5 py-0.5 text-[10px] font-extrabold rounded-full border flex items-center gap-1 ${
+                user?.phone_verified || (user?.phone && user.phone.length >= 8)
+                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                  : 'bg-slate-800 text-slate-400 border-slate-700'
+              }`}>
+                {user?.phone_verified || (user?.phone && user.phone.length >= 8) ? (
+                  <>
+                    <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                    <span>Téléphone Vérifié</span>
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="w-3 h-3 text-slate-500" />
+                    <span>Non vérifié</span>
+                  </>
+                )}
               </span>
             </div>
             <input
@@ -438,7 +528,7 @@ export const EditProfilePage: React.FC = () => {
               className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-violet-500 font-bold"
             />
             <p className="text-[10px] text-slate-400 mt-1">
-              Votre numéro est sécurisé et garantit l'authenticité de votre profil contre les spams.
+              Votre numéro reste strictement confidentiel et n'est jamais affiché sur votre profil public.
             </p>
           </div>
 

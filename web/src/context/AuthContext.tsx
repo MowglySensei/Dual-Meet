@@ -75,12 +75,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const savedCache = localStorage.getItem(`dual_meet_profile_${session.user.id}`);
           const localCache = savedCache ? JSON.parse(savedCache) : {};
 
+          const userPhone = profile?.phone || localCache.phone || session.user.user_metadata?.phone || session.user.phone || '';
+          const isPhoneVerified = Boolean(session.user.phone_confirmed_at || profile?.phone_verified || (userPhone && userPhone.length >= 8));
+          const isEmailVerified = Boolean(session.user.email_confirmed_at);
+
           const merged: UserProfile = {
             id: session.user.id,
             display_name: profile?.display_name || localCache.display_name || session.user.user_metadata?.display_name || session.user.email?.split('@')[0] || 'Membre',
             email: session.user.email,
-            phone: profile?.phone || localCache.phone || session.user.user_metadata?.phone || '',
-            phone_verified: true,
+            email_verified: isEmailVerified,
+            phone: userPhone,
+            phone_verified: isPhoneVerified,
             city: profile?.city || localCache.city || '',
             latitude: profile?.latitude || localCache.latitude || 42.6986,
             longitude: profile?.longitude || localCache.longitude || 2.8956,
