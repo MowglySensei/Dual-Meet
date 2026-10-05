@@ -382,6 +382,11 @@ CREATE POLICY "Members send messages" ON public.messages FOR INSERT WITH CHECK (
 CREATE POLICY "Users view own notifications" ON public.notifications FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users update own notifications" ON public.notifications FOR UPDATE USING (auth.uid() = user_id);
 
+-- Blocks Policies
+CREATE POLICY "Users view own blocks" ON public.blocks FOR SELECT USING (auth.uid() = blocker_id);
+CREATE POLICY "Users can create block" ON public.blocks FOR INSERT WITH CHECK (auth.uid() = blocker_id);
+CREATE POLICY "Users can delete block" ON public.blocks FOR DELETE USING (auth.uid() = blocker_id);
+
 -- Reports & Admin Policies
 CREATE POLICY "Users can create report" ON public.reports FOR INSERT WITH CHECK (auth.uid() = reporter_id);
 CREATE POLICY "Admins view all reports" ON public.reports FOR SELECT USING (

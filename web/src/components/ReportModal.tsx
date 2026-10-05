@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { ShieldAlert, X, CheckCircle2 } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
-import { localStore } from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
+import { localStore, supabase, isSupabaseConfigured } from '../lib/supabase';
 
 interface ReportModalProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({
   reportedActivityId,
   targetName,
 }) => {
+  const { user } = useAuth();
   const { showToast } = useToast();
   const [reason, setReason] = useState<string>('Comportement inapproprié');
   const [details, setDetails] = useState<string>('');
@@ -25,13 +27,27 @@ export const ReportModal: React.FC<ReportModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Log report in localStore
+    if (isSupabaseConfigured && user) {
+      try {
+        await supabase.from('reports').insert({
+          reporter_id: user.id,
+          reported_user_id: reportedUserId || null,
+          reported_activity_id: reportedActivityId || null,
+          reason,
+          details,
+          status: 'pending',
+        });
+      } catch (err) {
+        // Fallback
+      }
+    }
+
     localStore.reports.unshift({
       id: `rep-${Date.now()}`,
-      reporter_id: 'current-user',
+      reporter_id: user?.id || 'current-user',
       reported_user_id: reportedUserId,
       reported_activity_id: reportedActivityId,
       reason,
