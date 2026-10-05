@@ -615,6 +615,23 @@ export const api = {
     return localStore.activities;
   },
 
+  async getRealMembers(currentUserId?: string): Promise<UserProfile[]> {
+    if (isSupabaseConfigured) {
+      try {
+        let query = supabase.from('profiles').select('*').order('created_at', { ascending: false });
+        if (currentUserId) {
+          query = query.neq('id', currentUserId);
+        }
+        const { data, error } = await query;
+        if (!error && data) return data as UserProfile[];
+        return [];
+      } catch (e) {
+        return [];
+      }
+    }
+    return currentUserId ? localStore.getContactsList(currentUserId) : [];
+  },
+
   async createActivity(act: Omit<Activity, 'id' | 'created_at'>): Promise<Activity> {
     if (isSupabaseConfigured) {
       try {

@@ -12,7 +12,9 @@ import {
   UserCheck,
   Bell,
   MessageSquare,
-  ArrowRight
+  ArrowRight,
+  Plane,
+  HeartHandshake
 } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
@@ -20,7 +22,7 @@ import { ActivityCard } from '../components/ActivityCard';
 import { ActivityCardSkeleton } from '../components/Skeleton';
 import { useAuth } from '../context/AuthContext';
 import { localStore, supabase, isSupabaseConfigured, api } from '../lib/supabase';
-import { Activity } from '../types';
+import { Activity, UserProfile, TravelProject } from '../types';
 
 export const DashboardPage: React.FC = () => {
   const { user } = useAuth();
@@ -29,6 +31,8 @@ export const DashboardPage: React.FC = () => {
   const [feedMode, setFilterFeedMode] = useState<'priority' | 'contacts' | 'spontaneous'>('priority');
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [activitiesList, setActivitiesList] = useState<Activity[]>([]);
+  const [realMembers, setRealMembers] = useState<UserProfile[]>([]);
+  const [travelProjects, setTravelProjects] = useState<TravelProject[]>([]);
 
   const [realStats, setRealStats] = useState({
     members: 1,
@@ -40,8 +44,15 @@ export const DashboardPage: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
-      const acts = await api.getActivities();
+      const [acts, members, travels] = await Promise.all([
+        api.getActivities(),
+        api.getRealMembers(user?.id),
+        api.getTravelProjects(),
+      ]);
+
       setActivitiesList(acts);
+      setRealMembers(members);
+      setTravelProjects(travels);
 
       if (isSupabaseConfigured) {
         try {
@@ -63,7 +74,7 @@ export const DashboardPage: React.FC = () => {
     };
 
     fetchData();
-  }, []);
+  }, [user?.id]);
 
   // Smart Priority Feed (Section 2 & 5)
   const priorityActivities = localStore.getPriorityFeed(user, activitiesList);
@@ -96,6 +107,8 @@ export const DashboardPage: React.FC = () => {
     'Bowling',
     'Restaurant',
     'Vélo',
+    'Padel & Tennis',
+    'Escape Game',
     'Jeux de société',
     'Course à pied',
     'Plage',
@@ -179,7 +192,7 @@ export const DashboardPage: React.FC = () => {
           </div>
         </div>
 
-        {/* MY UPCOMING OUTINGS & NOTIFICATIONS SUMMARY ROW (Section 2) */}
+        {/* MY UPCOMING OUTINGS & NOTIFICATIONS SUMMARY ROW */}
         {myUpcomingOutings.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
@@ -242,6 +255,68 @@ export const DashboardPage: React.FC = () => {
 
           </div>
         )}
+
+        {/* REAL MEMBERS DISCOVERY SECTION (CHANTIER 2) */}
+        <div className="space-y-4 pt-2">
+          <div className="flex items-center justify-between">
+            <h3 className="font-extrabold text-lg text-white flex items-center gap-2">
+              <Users className="w-5 h-5 text-cyan-400" />
+              <span>Nouveaux membres & Affinités ({realMembers.length})</span>
+            </h3>
+            {realMembers.length > 0 && (
+              <Link to="/partners" className="text-xs font-bold text-cyan-400 hover:underline">
+                Voir tous les membres →
+              </Link>
+            )}
+          </div>
+
+          {realMembers.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {realMembers.slice(0, 3).map(member => {
+                const common = member.interests?.filter(i => user?.interests?.includes(i)) || [];
+                const isSameCity = user?.city && member.city && user.city.toLowerCase() === member.city.toLowerCase();
+
+                return (
+                  <div key={member.id} className="bg-[#0F172A] border border-slate-800 rounded-2xl p-4 space-y-3 flex items-center justify-between gap-3 shadow-lg">
+                    <div className="flex items-center gap-3 overflow-hidden">
+                      <img
+                        src={member.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100'}
+                        alt={member.display_name}
+                        className="w-11 h-11 rounded-2xl object-cover ring-2 ring-violet-500/40 shrink-0"
+                      />
+                      <div className="overflow-hidden space-y-0.5">
+                        <h4 className="font-bold text-xs text-white truncate">{member.display_name}</h4>
+                        <p className="text-[10px] text-cyan-400 font-semibold truncate">📍 {member.city || 'Ville non renseignée'}</p>
+                        {common.length > 0 ? (
+                          <span className="text-[10px] text-emerald-400 font-bold block truncate">
+                            ✨ {common.length} intérêt(s) en commun
+                          </span>
+                        ) : isSameCity ? (
+                          <span className="text-[10px] text-violet-300 font-bold block truncate">
+                            📍 Même secteur géographique
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    <Link
+                      to={`/user/${member.id}`}
+                      className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 font-bold text-[10px] rounded-xl shrink-0 transition-colors"
+                    >
+                      Profil
+                    </Link>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="p-6 bg-[#0F172A] border border-slate-800 rounded-2xl text-center space-y-2">
+              <Users className="w-8 h-8 text-slate-600 mx-auto" />
+              <p className="text-xs font-bold text-white">Vous êtes actuellement le pionnier de votre secteur !</p>
+              <p className="text-[11px] text-slate-400">Invitez vos amis ou partagez votre lien pour créer le premier groupe de sorties.</p>
+            </div>
+          )}
+        </div>
 
         {/* FEED FILTER BAR & SEARCH (Section 5) */}
         <div className="space-y-6">
@@ -333,9 +408,9 @@ export const DashboardPage: React.FC = () => {
           ) : (
             <div className="py-16 text-center bg-[#0F172A] rounded-3xl border border-slate-800 space-y-4">
               <Compass className="w-12 h-12 text-slate-600 mx-auto" />
-              <h3 className="font-extrabold text-white text-lg">Aucune activité pour le moment dans ce secteur</h3>
+              <h3 className="font-extrabold text-white text-lg">Aucune activité pour le moment près de chez toi</h3>
               <p className="text-xs text-slate-400 max-w-md mx-auto">
-                Soyez le tout premier membre à proposer une sortie conviviale près de chez vous !
+                Il n'y a pas encore d'activité près de chez toi. Sois le tout premier membre à en créer une !
               </p>
               <Link
                 to="/activities/create"
