@@ -56,6 +56,12 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({ activity, compact = 
             </span>
           )}
 
+          {activity.has_carpooling && (
+            <span className="px-2 py-1 bg-emerald-500/90 backdrop-blur-md text-slate-950 text-[11px] font-extrabold rounded-lg shadow-md flex items-center gap-1">
+              🚗 Covoiturage
+            </span>
+          )}
+
           {isCancelled && (
             <span className="px-2.5 py-1 bg-rose-600 text-white text-[11px] font-extrabold rounded-lg shadow-md flex items-center gap-1 uppercase tracking-wider">
               <AlertCircle className="w-3 h-3" />

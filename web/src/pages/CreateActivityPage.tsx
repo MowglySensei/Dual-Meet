@@ -36,6 +36,7 @@ export const CreateActivityPage: React.FC = () => {
   const [fitnessLevel, setFitnessLevel] = useState<string>('Tous niveaux');
   const [isSpontaneous, setIsSpontaneous] = useState<boolean>(false);
   const [isTwoPerson, setIsTwoPerson] = useState<boolean>(false);
+  const [hasCarpooling, setHasCarpooling] = useState<boolean>(false);
   const [imageUrl, setImageUrl] = useState<string>('https://images.unsplash.com/photo-1511632765486-a01980e01a18?auto=format&fit=crop&q=80&w=800');
 
   const presetImages = [
@@ -73,6 +74,7 @@ export const CreateActivityPage: React.FC = () => {
       max_participants: maxParticipants,
       is_spontaneous: isSpontaneous,
       is_two_person: isTwoPerson,
+      has_carpooling: hasCarpooling,
       budget,
       fitness_level: fitnessLevel,
       status: 'open',
@@ -291,6 +293,23 @@ export const CreateActivityPage: React.FC = () => {
                 <option value="Sportif confirmé">Sportif confirmé</option>
               </select>
             </div>
+          </div>
+
+          {/* Carpooling Toggle */}
+          <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-xl">🚗</span>
+              <div>
+                <p className="text-xs font-bold text-white">Proposer ou organiser un covoiturage amical ?</p>
+                <p className="text-[11px] text-slate-400">Pour partager les frais de carburant et faire connaissance pendant le trajet.</p>
+              </div>
+            </div>
+            <input
+              type="checkbox"
+              checked={hasCarpooling}
+              onChange={e => setHasCarpooling(e.target.checked)}
+              className="w-5 h-5 rounded text-emerald-500 focus:ring-emerald-500 cursor-pointer"
+            />
           </div>
 
           {/* Spontaneous Toggle */}

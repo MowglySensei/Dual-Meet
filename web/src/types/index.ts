@@ -99,6 +99,8 @@ export interface Activity {
   is_two_person: boolean;
   budget: string;
   fitness_level: string;
+  has_carpooling?: boolean;
+  ambiance?: string;
   status: 'open' | 'full' | 'cancelled' | 'completed';
   image_url: string;
   created_at: string;
