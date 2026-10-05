@@ -131,12 +131,12 @@ export const DashboardPage: React.FC = () => {
               <span>Espace Membre Dual Meet</span>
             </div>
 
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-              Ravi de te revoir, <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-cyan-400">{user?.display_name || 'Ami Dual Meet'}</span> !
+            <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
+              Tu fais quoi ce week-end, <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-cyan-400">{user?.display_name || 'Ami Dual Meet'}</span> ?
             </h1>
 
             <p className="text-sm text-slate-300 leading-relaxed font-medium">
-              Que souhaites-tu faire aujourd'hui ? Propose une sortie ou rejoins des membres motivés près de chez toi.
+              Rejoins une sortie amicale près de chez toi ou propose la tienne en un clic.
             </p>
 
             <div className="flex flex-wrap items-center gap-3 pt-2">
