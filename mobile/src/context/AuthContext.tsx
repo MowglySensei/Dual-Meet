@@ -112,23 +112,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
+    let isMounted = true;
+
+    const safetyTimer = setTimeout(() => {
+      if (isMounted) setLoading(false);
+    }, 1500);
+
     const initSession = async () => {
-      setLoading(true);
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) {
-          setAuthError(error.message);
-          setUser(null);
-        } else if (session?.user) {
+          if (isMounted) setAuthError(error.message);
+        } else if (session?.user && isMounted) {
           await fetchProfile(session.user.id, session.user.email, session.user.user_metadata);
-          setAuthError(null);
-        } else {
-          setUser(null);
         }
       } catch (e) {
-        setUser(null);
+        // ignore
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+          clearTimeout(safetyTimer);
+        }
       }
     };
 
@@ -141,15 +145,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user) {
+      if (session?.user && isMounted) {
         await fetchProfile(session.user.id, session.user.email, session.user.user_metadata);
-      } else {
+      } else if (isMounted) {
         setUser(null);
       }
-      setLoading(false);
+      if (isMounted) setLoading(false);
     });
 
     return () => {
+      isMounted = false;
+      clearTimeout(safetyTimer);
       linkSubscription.remove();
       authListener.subscription.unsubscribe();
     };
