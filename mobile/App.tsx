@@ -54,7 +54,7 @@ class ErrorBoundary extends Component<Props, State> {
 export default function App() {
   return (
     <SafeAreaProvider>
-      <StatusBar style="light" backgroundColor="#0B0F17" />
+      <StatusBar style="light" />
       <ErrorBoundary>
         <ToastProvider>
           <AuthProvider>
