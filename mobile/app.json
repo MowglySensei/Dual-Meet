@@ -4,11 +4,9 @@
     "slug": "dual-meet-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "scheme": "dualmeet",
     "splash": {
-      "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#0B0F17"
     },
@@ -22,10 +20,6 @@
       }
     },
     "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0B0F17"
-      },
       "package": "com.dualmeet.app",
       "permissions": [
         "ACCESS_COARSE_LOCATION",
@@ -33,10 +27,10 @@
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE"
-      ]
-    },
-    "web": {
-      "favicon": "./assets/favicon.png"
+      ],
+      "adaptiveIcon": {
+        "backgroundColor": "#0B0F17"
+      }
     }
   }
 }
