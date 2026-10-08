@@ -3,7 +3,6 @@
     "name": "Dual Meet",
     "slug": "dual-meet-mobile",
     "version": "1.0.0",
-    "sdkVersion": "57.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "scheme": "dualmeet",
@@ -32,6 +31,9 @@
       "adaptiveIcon": {
         "backgroundColor": "#0B0F17"
       }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
     }
   }
 }
