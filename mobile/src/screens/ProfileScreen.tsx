@@ -39,12 +39,12 @@ export const ProfileScreen = ({ navigation }: any) => {
         {/* Trust Badges Bar */}
         <View style={styles.trustBar}>
           <View style={[styles.badgeItem, user?.email_verified && styles.badgeActive]}>
-            <Text style={styles.badgeText}>{user?.email_verified ? '✓ Email Vérifié' : '✕ Email non vérifié'}</Text>
+            <Text style={styles.badgeText}>{user?.email_verified ? '✓ Email Confirmé' : '✕ Email non confirmé'}</Text>
           </View>
 
-          <View style={[styles.badgeItem, (user?.phone_verified || (user?.phone && user.phone.length >= 8)) && styles.badgeActive]}>
+          <View style={[styles.badgeItem, user?.phone && styles.badgeActive]}>
             <Text style={styles.badgeText}>
-              {user?.phone_verified || (user?.phone && user.phone.length >= 8) ? '✓ Téléphone Vérifié' : '✕ Téléphone non vérifié'}
+              {user?.phone_verified ? '✓ Téléphone Vérifié (SMS)' : (user?.phone ? '📱 Mobile Enregistré' : '✕ Téléphone non renseigné')}
             </Text>
           </View>
         </View>

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { Linking } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { UserProfile } from '../types';
 
@@ -41,14 +42,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .eq('id', userId)
         .single();
 
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+
       const userPhone = profile?.phone || metadata?.phone || '';
-      const isPhoneVerified = Boolean(profile?.phone_verified || (userPhone && userPhone.length >= 8));
+      const isEmailVerified = Boolean(authUser?.email_confirmed_at);
+      const isPhoneVerified = Boolean(authUser?.phone_confirmed_at || profile?.phone_verified === true);
 
       const merged: UserProfile = {
         id: userId,
         display_name: profile?.display_name || metadata?.display_name || email?.split('@')[0] || 'Membre',
         email: email || profile?.email || '',
-        email_verified: true,
+        email_verified: isEmailVerified,
         phone: userPhone,
         phone_verified: isPhoneVerified,
         city: profile?.city || '',
@@ -69,6 +73,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(merged);
     } catch (e) {
       // Fallback
+    }
+  };
+
+  const handleDeepLinkUrl = async (url: string | null) => {
+    if (!url) return;
+
+    if (url.includes('access_token=') && url.includes('refresh_token=')) {
+      const fragment = url.split('#')[1] || url.split('?')[1] || '';
+      const params = new URLSearchParams(fragment);
+      const accessToken = params.get('access_token');
+      const refreshToken = params.get('refresh_token');
+
+      if (accessToken && refreshToken) {
+        setLoading(true);
+        try {
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+
+          if (!error && data.user) {
+            await fetchProfile(data.user.id, data.user.email, data.user.user_metadata);
+          }
+        } catch (e) {
+          // ignore
+        } finally {
+          setLoading(false);
+        }
+      }
     }
   };
 
@@ -101,6 +134,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     initSession();
 
+    Linking.getInitialURL().then(url => handleDeepLinkUrl(url));
+
+    const linkSubscription = Linking.addEventListener('url', (event) => {
+      handleDeepLinkUrl(event.url);
+    });
+
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
         await fetchProfile(session.user.id, session.user.email, session.user.user_metadata);
@@ -111,6 +150,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     return () => {
+      linkSubscription.remove();
       authListener.subscription.unsubscribe();
     };
   }, []);
@@ -167,7 +207,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email,
         password,
         options: {
-          data: { display_name: displayName, birth_date: birthDate, phone, phone_verified: true },
+          data: { display_name: displayName, birth_date: birthDate, phone },
+          emailRedirectTo: 'dualmeet://auth/callback',
         },
       });
 
@@ -205,7 +246,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!user) return false;
 
     try {
-      const { data: updatedProfile, error } = await supabase
+      const { data: updatedProfile } = await supabase
         .from('profiles')
         .update({
           display_name: updatedData.display_name,
@@ -213,7 +254,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           bio: updatedData.bio,
           city: updatedData.city,
           phone: updatedData.phone,
-          phone_verified: updatedData.phone_verified !== undefined ? updatedData.phone_verified : user.phone_verified,
           interests: updatedData.interests,
           preferred_activities: updatedData.preferred_activities,
           availability: updatedData.availability,
