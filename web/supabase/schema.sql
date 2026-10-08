@@ -280,6 +280,22 @@ CREATE TABLE IF NOT EXISTS public.travel_project_participants (
 
 CREATE INDEX IF NOT EXISTS idx_travel_participants ON public.travel_project_participants(project_id, user_id);
 
+-- 18. USER AVAILABILITIES TABLE ("JE SUIS DISPO")
+CREATE TABLE IF NOT EXISTS public.user_availabilities (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  slot TEXT NOT NULL,
+  intent TEXT DEFAULT 'Je cherche une sortie amicale',
+  activity_type TEXT DEFAULT 'Toutes activités',
+  city TEXT NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, slot)
+);
+
+CREATE INDEX IF NOT EXISTS idx_availabilities_expires ON public.user_availabilities(expires_at);
+CREATE INDEX IF NOT EXISTS idx_availabilities_city ON public.user_availabilities(city);
+
 -- ==========================================
 -- ROW LEVEL SECURITY (RLS) POLICIES
 -- ==========================================
@@ -302,6 +318,11 @@ ALTER TABLE public.communities ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.community_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.travel_projects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.travel_project_participants ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_availabilities ENABLE ROW LEVEL SECURITY;
+
+-- Availabilities Policies ("Je suis dispo")
+CREATE POLICY "Availabilities viewable by everyone" ON public.user_availabilities FOR SELECT USING (expires_at > NOW());
+CREATE POLICY "Users manage own availability" ON public.user_availabilities FOR ALL USING (auth.uid() = user_id);
 
 -- Travel Projects Policies
 CREATE POLICY "Travel projects viewable by everyone" ON public.travel_projects FOR SELECT USING (true);

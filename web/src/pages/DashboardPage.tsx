@@ -14,18 +14,21 @@ import {
   MessageSquare,
   ArrowRight,
   Plane,
-  HeartHandshake
+  HeartHandshake,
+  Check
 } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { ActivityCard } from '../components/ActivityCard';
 import { ActivityCardSkeleton } from '../components/Skeleton';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { localStore, supabase, isSupabaseConfigured, api } from '../lib/supabase';
-import { Activity, UserProfile, TravelProject } from '../types';
+import { Activity, UserProfile, TravelProject, UserAvailability } from '../types';
 
 export const DashboardPage: React.FC = () => {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [selectedCategory, setSelectedCategory] = useState<string>('Toutes');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [feedMode, setFilterFeedMode] = useState<'priority' | 'contacts' | 'spontaneous'>('priority');
@@ -33,6 +36,8 @@ export const DashboardPage: React.FC = () => {
   const [activitiesList, setActivitiesList] = useState<Activity[]>([]);
   const [realMembers, setRealMembers] = useState<UserProfile[]>([]);
   const [travelProjects, setTravelProjects] = useState<TravelProject[]>([]);
+  const [availabilitiesList, setAvailabilitiesList] = useState<UserAvailability[]>([]);
+  const [myActiveSlot, setMyActiveSlot] = useState<string | null>(null);
 
   const [realStats, setRealStats] = useState({
     members: 1,
@@ -44,15 +49,22 @@ export const DashboardPage: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
-      const [acts, members, travels] = await Promise.all([
+      const [acts, members, travels, avails] = await Promise.all([
         api.getActivities(),
         api.getRealMembers(user?.id),
         api.getTravelProjects(),
+        api.getAvailabilities(),
       ]);
 
       setActivitiesList(acts);
       setRealMembers(members);
       setTravelProjects(travels);
+      setAvailabilitiesList(avails);
+
+      if (user) {
+        const myAvail = avails.find(a => a.user_id === user.id);
+        if (myAvail) setMyActiveSlot(myAvail.slot);
+      }
 
       if (isSupabaseConfigured) {
         try {
@@ -75,6 +87,27 @@ export const DashboardPage: React.FC = () => {
 
     fetchData();
   }, [user?.id]);
+
+  const handleToggleMyAvailability = async (slot: string) => {
+    if (!user) return;
+
+    if (myActiveSlot === slot) {
+      setMyActiveSlot(null);
+      setAvailabilitiesList(prev => prev.filter(a => !(a.user_id === user.id && a.slot === slot)));
+      showToast(`Disponibilité ${slot} retirée.`, 'info');
+    } else {
+      setMyActiveSlot(slot);
+      const created = await api.setUserAvailability({
+        user_id: user.id,
+        slot,
+        intent: 'Je cherche une sortie amicale',
+        activity_type: 'Toutes activités',
+        city: user.city || 'Secteur local',
+      });
+      setAvailabilitiesList(prev => [created, ...prev.filter(a => a.user_id !== user.id)]);
+      showToast(`Vous êtes marqué dispo "${slot}" !`, 'success');
+    }
+  };
 
   // Smart Priority Feed (Section 2 & 5)
   const priorityActivities = localStore.getPriorityFeed(user, activitiesList);
@@ -157,6 +190,74 @@ export const DashboardPage: React.FC = () => {
               </Link>
             </div>
           </div>
+        </div>
+
+        {/* "JE SUIS DISPO" & DISPONIBILITÉS EN DIRECT (PHASE 3) */}
+        <div className="bg-[#0F172A] border border-cyan-500/30 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-cyan-500/20 text-cyan-300 text-xs font-bold rounded-full border border-cyan-500/30">
+                <Zap className="w-3.5 h-3.5 text-cyan-400 fill-current" />
+                <span>Indiquer ma disponibilité</span>
+              </div>
+              <h3 className="font-extrabold text-xl text-white">« Je suis dispo » pour une activité</h3>
+              <p className="text-xs text-slate-400">Signalez aux membres proches que vous êtes partant(e) pour sortir.</p>
+            </div>
+
+            {user && (
+              <div className="flex flex-wrap gap-2">
+                {['Maintenant', 'Ce soir', 'Demain', 'Ce week-end'].map(slot => (
+                  <button
+                    key={slot}
+                    onClick={() => handleToggleMyAvailability(slot)}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+                      myActiveSlot === slot
+                        ? 'bg-gradient-to-r from-violet-600 to-cyan-500 text-white shadow-lg'
+                        : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800'
+                    }`}
+                  >
+                    {myActiveSlot === slot ? `✔ Dispo ${slot}` : `Dispo ${slot}`}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Active Availabilities List */}
+          {availabilitiesList.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
+              {availabilitiesList.map(avail => (
+                <div key={avail.id} className="p-4 bg-slate-900/90 rounded-2xl border border-slate-800 flex items-center justify-between gap-3 shadow-md">
+                  <div className="flex items-center gap-3 overflow-hidden">
+                    <img
+                      src={avail.user?.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100'}
+                      alt={avail.user?.display_name || 'Membre'}
+                      className="w-10 h-10 rounded-xl object-cover ring-2 ring-cyan-500/40 shrink-0"
+                    />
+                    <div className="overflow-hidden space-y-0.5">
+                      <span className="px-2 py-0.5 bg-cyan-500/20 text-cyan-300 font-extrabold text-[10px] rounded uppercase">
+                        Dispo {avail.slot}
+                      </span>
+                      <p className="font-bold text-xs text-white truncate">{avail.user?.display_name}</p>
+                      <p className="text-[10px] text-slate-400 truncate">📍 {avail.city}</p>
+                    </div>
+                  </div>
+
+                  <Link
+                    to={`/user/${avail.user_id}`}
+                    className="px-3 py-1.5 bg-violet-600/20 hover:bg-violet-600 text-violet-300 hover:text-white font-bold text-[10px] rounded-xl border border-violet-500/30 transition-all shrink-0"
+                  >
+                    Proposer
+                  </Link>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-4 bg-slate-950/80 rounded-2xl border border-slate-800 text-center space-y-1">
+              <p className="text-xs font-bold text-slate-300">Personne n'a encore indiqué être disponible sur ce créneau.</p>
+              <p className="text-[11px] text-slate-500">Soyez le premier en cliquant sur un bouton ci-dessus !</p>
+            </div>
+          )}
         </div>
 
         {/* REAL DYNAMIC COMMUNITY STATS BAR (0 MYTHO) */}
@@ -408,16 +509,16 @@ export const DashboardPage: React.FC = () => {
           ) : (
             <div className="py-16 text-center bg-[#0F172A] rounded-3xl border border-slate-800 space-y-4">
               <Compass className="w-12 h-12 text-slate-600 mx-auto" />
-              <h3 className="font-extrabold text-white text-lg">Aucune activité pour le moment près de chez toi</h3>
+              <h3 className="font-extrabold text-white text-lg">Rien ici pour le moment près de chez toi</h3>
               <p className="text-xs text-slate-400 max-w-md mx-auto">
-                Il n'y a pas encore d'activité près de chez toi. Sois le tout premier membre à en créer une !
+                Pourquoi ne pas créer la première activité ?
               </p>
               <Link
                 to="/activities/create"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-violet-600 to-cyan-500 text-white font-extrabold text-xs rounded-xl shadow-lg hover:scale-105 transition-all"
               >
                 <PlusCircle className="w-4 h-4" />
-                Créer la première activité
+                Créer une sortie
               </Link>
             </div>
           )}

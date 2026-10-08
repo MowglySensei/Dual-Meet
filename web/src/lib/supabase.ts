@@ -14,7 +14,8 @@ import {
   ActivityInvitation,
   RelationshipStatus,
   TravelProject,
-  CountryGuide
+  CountryGuide,
+  UserAvailability
 } from '../types';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://example.supabase.co';
@@ -356,7 +357,26 @@ class LocalStore {
   relationships: UserRelationship[] = MOCK_RELATIONSHIPS;
   invitations: ActivityInvitation[] = MOCK_INVITATIONS;
   travelProjects: TravelProject[] = MOCK_TRAVEL_PROJECTS;
+  availabilities: UserAvailability[] = [];
   reports: ReportItem[] = [];
+
+  setAvailability(avail: { user_id: string; slot: string; intent: string; activity_type: string; city: string; hoursValid?: number }): UserAvailability {
+    const hours = avail.hoursValid || 8;
+    const expiresAt = new Date(Date.now() + hours * 3600000).toISOString();
+    const newAvail: UserAvailability = {
+      id: `avail-${Date.now()}`,
+      user_id: avail.user_id,
+      slot: avail.slot,
+      intent: avail.intent,
+      activity_type: avail.activity_type,
+      city: avail.city,
+      expires_at: expiresAt,
+      created_at: new Date().toISOString(),
+    };
+    this.availabilities = this.availabilities.filter(a => !(a.user_id === avail.user_id && a.slot === avail.slot));
+    this.availabilities.unshift(newAvail);
+    return newAvail;
+  }
 
   getRelationshipStatus(currentUserId: string, targetUserId: string): RelationshipStatus {
     if (currentUserId === targetUserId) return 'none';
@@ -734,6 +754,53 @@ export const api = {
       }
     }
     return localStore.communities;
+  },
+
+  async getAvailabilities(city?: string): Promise<UserAvailability[]> {
+    if (isSupabaseConfigured) {
+      try {
+        let query = supabase
+          .from('user_availabilities')
+          .select('*, user:profiles(*)')
+          .gt('expires_at', new Date().toISOString())
+          .order('created_at', { ascending: false });
+
+        if (city) {
+          query = query.ilike('city', `%${city}%`);
+        }
+
+        const { data, error } = await query;
+        if (!error && data) return data as UserAvailability[];
+        return [];
+      } catch (e) {
+        return [];
+      }
+    }
+    return localStore.availabilities.filter(a => new Date(a.expires_at).getTime() > Date.now());
+  },
+
+  async setUserAvailability(avail: { user_id: string; slot: string; intent: string; activity_type: string; city: string; hoursValid?: number }): Promise<UserAvailability> {
+    const hours = avail.hoursValid || 8;
+    const expiresAt = new Date(Date.now() + hours * 3600000).toISOString();
+
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('user_availabilities')
+        .upsert({
+          user_id: avail.user_id,
+          slot: avail.slot,
+          intent: avail.intent,
+          activity_type: avail.activity_type,
+          city: avail.city,
+          expires_at: expiresAt,
+        })
+        .select()
+        .single();
+
+      if (!error && data) return data as UserAvailability;
+    }
+
+    return localStore.setAvailability(avail);
   },
 
   async uploadPhoto(file: File, bucket: 'avatars' | 'user-gallery'): Promise<string> {

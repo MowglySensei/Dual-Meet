@@ -261,3 +261,15 @@ export interface CountryGuide {
   tips: string[];
   official_url: string;
 }
+
+export interface UserAvailability {
+  id: string;
+  user_id: string;
+  user?: UserProfile;
+  slot: string;
+  intent: string;
+  activity_type: string;
+  city: string;
+  expires_at: string;
+  created_at: string;
+}
