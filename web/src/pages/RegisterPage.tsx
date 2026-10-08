@@ -1,9 +1,25 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { User, Mail, Lock, Calendar, ArrowRight, ShieldCheck, CheckSquare, Square, CheckCircle2, AlertCircle, Phone } from 'lucide-react';
+import {
+  User,
+  Mail,
+  Lock,
+  Calendar,
+  ArrowRight,
+  ShieldCheck,
+  CheckSquare,
+  Square,
+  CheckCircle2,
+  AlertCircle,
+  Phone,
+  Eye,
+  EyeOff,
+  RefreshCw
+} from 'lucide-react';
 import { Logo } from '../components/Logo';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
 export const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
@@ -15,12 +31,31 @@ export const RegisterPage: React.FC = () => {
   const [phone, setPhone] = useState<string>('');
   const [birthDate, setBirthDate] = useState<string>('1998-05-14');
   const [password, setPassword] = useState<string>('');
+  const [confirmPassword, setConfirmPassword] = useState<string>('');
+  const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
   const [agreeTerms, setAgreeTerms] = useState<boolean>(true);
   const [loading, setLoading] = useState<boolean>(false);
+  const [resendingEmail, setResendingEmail] = useState<boolean>(false);
   const [emailConfirmationSent, setEmailConfirmationSent] = useState<boolean>(false);
+
+  // Real-time Validation Checks
+  const isPasswordLengthValid = password.length >= 8;
+  const isConfirmPasswordMatching = confirmPassword.length > 0 && password === confirmPassword;
+  const hasConfirmError = confirmPassword.length > 0 && password !== confirmPassword;
+
+  const isFormValid =
+    displayName.trim().length > 0 &&
+    email.includes('@') &&
+    phone.length >= 8 &&
+    isPasswordLengthValid &&
+    isConfirmPasswordMatching &&
+    agreeTerms &&
+    !loading;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!agreeTerms) {
       showToast('Veuillez accepter les conditions d’utilisation.', 'error');
       return;
@@ -31,14 +66,25 @@ export const RegisterPage: React.FC = () => {
       return;
     }
 
+    if (!isPasswordLengthValid) {
+      showToast('Le mot de passe doit contenir au moins 8 caractères.', 'error');
+      return;
+    }
+
+    if (!isConfirmPasswordMatching) {
+      showToast('Les mots de passe ne correspondent pas.', 'error');
+      return;
+    }
+
     setLoading(true);
 
+    // Pass ONLY the real password to signup function
     const result = await signup(
-      displayName,
-      email,
+      displayName.trim(),
+      email.trim(),
       birthDate,
       password,
-      phone
+      phone.trim()
     );
 
     setLoading(false);
@@ -53,6 +99,31 @@ export const RegisterPage: React.FC = () => {
       }
     } else {
       showToast('Erreur lors de l’inscription.', 'error');
+    }
+  };
+
+  const handleResendConfirmationEmail = async () => {
+    if (!email || !isSupabaseConfigured) return;
+
+    setResendingEmail(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email.trim(),
+        options: {
+          emailRedirectTo: 'https://dual-meet-4ysc.vercel.app/dashboard'
+        }
+      });
+
+      if (!error) {
+        showToast('E-mail de confirmation renvoyé ! Vérifiez votre boîte de réception et vos spams.', 'success');
+      } else {
+        showToast(error.message || 'Erreur lors du renvoi de l’e-mail.', 'error');
+      }
+    } catch (err: any) {
+      showToast('Erreur lors du renvoi de l’e-mail.', 'error');
+    } finally {
+      setResendingEmail(false);
     }
   };
 
@@ -85,13 +156,29 @@ export const RegisterPage: React.FC = () => {
               <div className="p-4 bg-violet-600/20 text-violet-300 border border-violet-500/30 rounded-full inline-block">
                 <CheckCircle2 className="w-10 h-10 mx-auto text-cyan-400" />
               </div>
-              <h3 className="text-xl font-extrabold text-white">Vérification envoyée !</h3>
+              <h3 className="text-xl font-extrabold text-white">Compte créé !</h3>
               <p className="text-xs text-slate-300 leading-relaxed max-w-sm mx-auto">
-                Un e-mail de confirmation a été envoyé à <strong className="text-cyan-400">{email}</strong>. Cliquez sur le lien pour finaliser la création de votre compte.
+                Vérifie ton adresse e-mail <strong className="text-cyan-400">{email}</strong> pour activer ton compte Dual Meet.
               </p>
-              <Link to="/login" className="inline-block px-6 py-2.5 bg-slate-800 text-white font-bold text-xs rounded-xl hover:bg-slate-700">
-                Aller à la page de connexion
-              </Link>
+              <p className="text-[11px] text-amber-300/90 font-medium">
+                📩 Vérifie également ton dossier de spams ou courriers indésirables.
+              </p>
+
+              <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleResendConfirmationEmail}
+                  disabled={resendingEmail}
+                  className="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs rounded-xl border border-slate-700 transition-colors flex items-center gap-2"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 text-cyan-400 ${resendingEmail ? 'animate-spin' : ''}`} />
+                  <span>{resendingEmail ? 'Envoi en cours...' : 'Renvoyer l\'e-mail de confirmation'}</span>
+                </button>
+
+                <Link to="/login" className="px-5 py-2.5 bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs rounded-xl shadow transition-colors">
+                  Page de connexion
+                </Link>
+              </div>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -179,15 +266,88 @@ export const RegisterPage: React.FC = () => {
                 <div className="relative">
                   <Lock className="absolute left-3.5 top-3 w-4 h-4 text-slate-500" />
                   <input
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     required
-                    minLength={6}
                     value={password}
                     onChange={e => setPassword(e.target.value)}
-                    placeholder="6 caractères minimum"
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500 transition-colors"
+                    placeholder="8 caractères minimum"
+                    className={`w-full bg-slate-900 border rounded-xl pl-10 pr-11 py-2.5 text-sm text-white focus:outline-none transition-colors ${
+                      password.length > 0 && !isPasswordLengthValid
+                        ? 'border-rose-500 focus:border-rose-400'
+                        : isPasswordLengthValid
+                        ? 'border-emerald-500 focus:border-emerald-400'
+                        : 'border-slate-700 focus:border-cyan-500'
+                    }`}
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                    className="absolute right-3.5 top-2.5 text-slate-400 hover:text-white p-0.5 rounded transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
+
+                {/* Password Helper Indicator */}
+                {password.length > 0 && !isPasswordLengthValid ? (
+                  <p className="text-[10px] text-rose-400 mt-1 font-semibold flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    <span>Le mot de passe doit contenir au moins 8 caractères.</span>
+                  </p>
+                ) : isPasswordLengthValid ? (
+                  <p className="text-[10px] text-emerald-400 mt-1 font-semibold flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" />
+                    <span>Mot de passe valide (8+ caractères).</span>
+                  </p>
+                ) : (
+                  <p className="text-[10px] text-slate-400 mt-1">8 caractères minimum.</p>
+                )}
+              </div>
+
+              {/* Confirm Password */}
+              <div>
+                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                  Confirmer le mot de passe <span className="text-rose-400">*</span>
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3.5 top-3 w-4 h-4 text-slate-500" />
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    required
+                    value={confirmPassword}
+                    onChange={e => setConfirmPassword(e.target.value)}
+                    placeholder="Saisissez à nouveau votre mot de passe"
+                    className={`w-full bg-slate-900 border rounded-xl pl-10 pr-11 py-2.5 text-sm text-white focus:outline-none transition-colors ${
+                      hasConfirmError
+                        ? 'border-rose-500 focus:border-rose-400'
+                        : isConfirmPasswordMatching
+                        ? 'border-emerald-500 focus:border-emerald-400'
+                        : 'border-slate-700 focus:border-cyan-500'
+                    }`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    aria-label={showConfirmPassword ? 'Masquer la confirmation du mot de passe' : 'Afficher la confirmation du mot de passe'}
+                    className="absolute right-3.5 top-2.5 text-slate-400 hover:text-white p-0.5 rounded transition-colors"
+                  >
+                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+
+                {/* Confirm Password Helper */}
+                {hasConfirmError ? (
+                  <p className="text-[10px] text-rose-400 mt-1 font-semibold flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    <span>Les mots de passe ne correspondent pas.</span>
+                  </p>
+                ) : isConfirmPasswordMatching ? (
+                  <p className="text-[10px] text-emerald-400 mt-1 font-semibold flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" />
+                    <span>Mots de passe identiques.</span>
+                  </p>
+                ) : null}
               </div>
 
               {/* Terms Checkbox */}
@@ -208,11 +368,15 @@ export const RegisterPage: React.FC = () => {
               {/* Submit Button */}
               <button
                 type="submit"
-                disabled={loading}
-                className="w-full py-3.5 bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-500 hover:from-violet-500 hover:to-cyan-400 text-white font-extrabold text-sm rounded-xl shadow-lg shadow-violet-600/30 hover:shadow-cyan-500/40 transition-all flex items-center justify-center gap-2"
+                disabled={!isFormValid}
+                className={`w-full py-3.5 font-extrabold text-sm rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 ${
+                  isFormValid
+                    ? 'bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-500 hover:from-violet-500 hover:to-cyan-400 text-white shadow-violet-600/30 hover:scale-[1.01]'
+                    : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
+                }`}
               >
-                <span>{loading ? 'Création et vérification du compte...' : 'Créer mon compte vérifié'}</span>
-                <ArrowRight className="w-4 h-4 text-cyan-200" />
+                <span>{loading ? 'Création du compte...' : 'Créer mon compte vérifié'}</span>
+                <ArrowRight className={`w-4 h-4 ${isFormValid ? 'text-cyan-200' : 'text-slate-600'}`} />
               </button>
 
             </form>
